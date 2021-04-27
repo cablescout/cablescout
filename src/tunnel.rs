@@ -1,19 +1,25 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
+use structopt::StructOpt;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, StructOpt, Serialize, Deserialize)]
 pub struct TunnelConfig {
-    name: String,
+    /// Remote Cablescout endpoint (<hostname:port> or <ip:port>)
+    #[structopt(short, long)]
     endpoint: String,
 }
 
-impl TunnelConfig {
-    pub fn from_file(path: &Path) -> Result<Self> {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-        Ok(serde_yaml::from_reader(reader)?)
+pub struct Tunnel<'a> {
+    name: &'a str,
+    config: &'a TunnelConfig,
+}
+
+impl<'a> Tunnel<'a> {
+    pub fn new(name: &'a str, config: &'a TunnelConfig) -> Self {
+        Self { name, config }
+    }
+
+    pub fn connect(&self) -> Result<()> {
+        Ok(())
     }
 }

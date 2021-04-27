@@ -1,23 +1,26 @@
+mod commands;
 mod config;
 mod tunnel;
 
+use anyhow::Result;
 use config::Config;
 use std::path::PathBuf;
 use structopt::StructOpt;
+use tunnel::TunnelConfig;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "cablescout")]
 struct Options {
     /// Activate debug mode
-    #[structopt(short, long)]
+    #[structopt(global = true, short, long)]
     debug: bool,
 
     /// Directory where cablescout saves its configuration
-    #[structopt(name = "PATH", default_value = "~/.cablescout")]
+    #[structopt(global = true, long, name = "PATH", default_value = "~/.cablescout")]
     config_dir: PathBuf,
 
     #[structopt(subcommand)]
-    cmd: Command,
+    command: Command,
 }
 
 #[derive(Debug, StructOpt)]
@@ -42,8 +45,8 @@ enum Command {
         /// New tunnel name
         name: String,
 
-        /// Remote Cablescout address
-        address: String,
+        #[structopt(flatten)]
+        tunnel_config: TunnelConfig,
     },
 
     /// Remove a tunnel
@@ -53,7 +56,50 @@ enum Command {
     },
 }
 
+impl Options {
+    fn run(self) -> Result<()> {
+        let mut config = Config::new(self.config_dir)?;
+
+        match self.command {
+            Command::Status {} => {
+                config.cmd_status()?;
+            }
+            Command::Up { name } => {
+                config.cmd_up(name)?;
+            }
+            Command::Down { name } => {
+                config.cmd_down(name)?;
+            }
+            Command::Add {
+                name,
+                tunnel_config,
+            } => {
+                config.cmd_add(name, tunnel_config)?;
+            }
+            Command::Remove { name } => {
+                config.cmd_remove(name)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 fn main() {
     let options = Options::from_args();
-    let config = Config::new(options.config_dir);
+
+    env_logger::Builder::new()
+        .filter(
+            Some(env!("CARGO_PKG_NAME")),
+            match options.debug {
+                true => log::LevelFilter::Debug,
+                false => log::LevelFilter::Info,
+            },
+        )
+        .filter(None, log::LevelFilter::Info)
+        .init();
+
+    if let Err(err) = options.run() {
+        println!("error: {}", err.to_string());
+        std::process::exit(1);
+    }
 }
