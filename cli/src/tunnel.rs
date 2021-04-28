@@ -4,7 +4,7 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt, Serialize, Deserialize)]
 pub struct TunnelConfig {
-    /// Remote Cablescout endpoint (<hostname:port> or <ip:port>)
+    /// Remote Cablescout endpoint (<hostname>, <hostname:port>, <ip>, or <ip:port>)
     #[structopt(short, long)]
     endpoint: String,
 }
