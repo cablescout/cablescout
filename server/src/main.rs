@@ -1,6 +1,9 @@
+#![feature(btree_drain_filter)]
+
 mod api;
 mod api_result;
 mod login;
+mod sessions;
 mod tokens;
 mod wireguard;
 
@@ -26,7 +29,7 @@ struct Options {
 }
 
 async fn _main(options: Options) -> Result<()> {
-    let wireguard = Wireguard::new(options.wireguard);
+    let wireguard = Wireguard::new(options.wireguard)?;
     wireguard.clone().run();
     let api = ApiServer::new(options.api, options.login, wireguard)?;
     api.run().await?;

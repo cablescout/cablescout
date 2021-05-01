@@ -69,7 +69,7 @@ async fn finish_login(
     )
 }
 
-pub struct ApiServer {
+pub(crate) struct ApiServer {
     api_settings: ApiSettings,
     login_settings: LoginSettings,
     wireguard: Arc<Wireguard>,

@@ -18,6 +18,7 @@ pub struct LoginSettings {
     pub login_duration: humantime::Duration,
 }
 
+#[derive(Debug, Clone)]
 pub struct UserData {}
 
 pub async fn validate_user(
