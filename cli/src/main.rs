@@ -1,6 +1,8 @@
 mod commands;
 mod config;
+mod key_pair;
 mod tunnel;
+mod wg_quick;
 
 use anyhow::Result;
 use config::Config;
@@ -57,34 +59,35 @@ enum Command {
 }
 
 impl Options {
-    fn run(self) -> Result<()> {
+    async fn run(self) -> Result<()> {
         let mut config = Config::new(self.config_dir)?;
 
         match self.command {
             Command::Status {} => {
-                config.cmd_status()?;
+                config.cmd_status().await?;
             }
             Command::Up { name } => {
-                config.cmd_up(name)?;
+                config.cmd_up(name).await?;
             }
             Command::Down { name } => {
-                config.cmd_down(name)?;
+                config.cmd_down(name).await?;
             }
             Command::Add {
                 name,
                 tunnel_config,
             } => {
-                config.cmd_add(name, tunnel_config)?;
+                config.cmd_add(name, tunnel_config).await?;
             }
             Command::Remove { name } => {
-                config.cmd_remove(name)?;
+                config.cmd_remove(name).await?;
             }
         }
         Ok(())
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let options = Options::from_args();
     let is_debug = options.debug;
 

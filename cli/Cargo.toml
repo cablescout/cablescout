@@ -6,14 +6,19 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.40"
+async-std = "1.9.0"
 cablescout-api = { path = "../api" }
 env = "0.0.0"
 env_logger = "0.8.3"
+ipnetwork = "0.18.0"
 log = "0.4.14"
-reqwest = "0.11.3"
+reqwest = { version = "0.11.3", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_ini = "0.2.0"
 serde_json = "1.0.64"
+serde_with = "1.8.1"
 serde_yaml = "0.8.17"
 shellexpand = "2.1.0"
 structopt = "0.3.21"
+tokio = { version = "1.5.0", features = ["rt-multi-thread", "io-util", "process", "fs"] }
+url = { version = "2.2.1", features = ["serde"] }

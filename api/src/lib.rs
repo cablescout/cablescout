@@ -1,8 +1,8 @@
 use chrono::prelude::*;
-use core::time::Duration;
 use ipnetwork::IpNetwork;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
+use std::time::Duration;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StartLoginRequest {

@@ -60,13 +60,27 @@ impl Config {
         Ok(path)
     }
 
-    fn ensure_path(&self) -> Result<PathBuf> {
+    fn config_full_path(&self) -> Result<PathBuf> {
         let path = self
             .path
             .to_str()
             .ok_or_else(|| anyhow!("Invalid directory name"))?;
-        debug!("Ensuring path: {}", path);
-        let path: PathBuf = shellexpand::full(path)?.into_owned().into();
+        Ok(shellexpand::full(path)?.into_owned().into())
+    }
+
+    pub fn wg_config_path(&self) -> Result<PathBuf> {
+        let mut path = self.config_full_path()?;
+        path.push("wg");
+        create_dir_all(&path)?;
+        Ok(path)
+    }
+
+    fn ensure_path(&self) -> Result<PathBuf> {
+        let path = self.config_full_path()?;
+        debug!(
+            "Ensuring path: {}",
+            path.to_str().expect("Error formatting path")
+        );
         create_dir_all(&path)?;
         Ok(path)
     }
