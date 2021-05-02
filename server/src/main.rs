@@ -42,7 +42,7 @@ async fn main() {
 
     env_logger::Builder::new()
         .filter(
-            Some(env!("CARGO_PKG_NAME")),
+            Some(env!("CARGO_CRATE_NAME")),
             match options.debug {
                 true => log::LevelFilter::Debug,
                 false => log::LevelFilter::Info,

@@ -86,11 +86,12 @@ impl Options {
 
 fn main() {
     let options = Options::from_args();
+    let is_debug = options.debug;
 
     env_logger::Builder::new()
         .filter(
-            Some(env!("CARGO_PKG_NAME")),
-            match options.debug {
+            Some(env!("CARGO_CRATE_NAME")),
+            match is_debug {
                 true => log::LevelFilter::Debug,
                 false => log::LevelFilter::Info,
             },
@@ -98,8 +99,14 @@ fn main() {
         .filter(None, log::LevelFilter::Info)
         .init();
 
-    if let Err(err) = options.run() {
-        println!("error: {}", err.to_string());
-        std::process::exit(1);
+    let result = options.run().await;
+    match is_debug {
+        true => result.unwrap(),
+        false => {
+            if let Err(err) = result {
+                println!("error: {}", err.to_string());
+                std::process::exit(1);
+            }
+        }
     }
 }
