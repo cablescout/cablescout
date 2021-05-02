@@ -29,7 +29,7 @@ struct Options {
 }
 
 async fn _main(options: Options) -> Result<()> {
-    let wireguard = Wireguard::new(options.wireguard)?;
+    let wireguard = Wireguard::new(options.wireguard).await?;
     wireguard.clone().run();
     let api = ApiServer::new(options.api, options.login, wireguard)?;
     api.run().await?;

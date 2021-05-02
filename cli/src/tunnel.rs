@@ -74,7 +74,7 @@ impl<'a> Tunnel<'a> {
         debug!("Got login finish response: {:#?}", finish_res);
 
         Ok(WireguardConfig::new(
-            FullWireguardInterface::new(key_pair, finish_res.interface),
+            FullWireguardInterface::new(&key_pair, finish_res.interface),
             finish_res.peer,
         ))
     }

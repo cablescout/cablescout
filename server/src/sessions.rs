@@ -1,15 +1,27 @@
 use crate::login::UserData;
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
-use ipnetwork::IpNetwork;
+use ipnetwork::{IpNetwork, IpNetworkError};
 use log::*;
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::select;
 use tokio::sync::{Notify, RwLock};
 use tokio::time;
+use wg_utils::WireguardPeer;
+
+pub fn ip_address_as_ip_network(ip: IpAddr) -> Result<IpNetwork, IpNetworkError> {
+    IpNetwork::new(
+        ip,
+        match ip {
+            IpAddr::V4(_) => 32,
+            IpAddr::V6(_) => 128,
+        },
+    )
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct Session {
@@ -19,15 +31,16 @@ pub(crate) struct Session {
     pub(crate) client_address: IpAddr,
 }
 
-impl Session {
-    pub fn client_address_as_ip_network(&self) -> Result<IpNetwork> {
-        Ok(IpNetwork::new(
-            self.client_address,
-            match self.client_address {
-                IpAddr::V4(_) => 32,
-                IpAddr::V6(_) => 128,
-            },
-        )?)
+impl TryFrom<&Session> for WireguardPeer {
+    type Error = anyhow::Error;
+
+    fn try_from(session: &Session) -> Result<Self, Self::Error> {
+        Ok(Self {
+            public_key: session.client_public_key.clone(),
+            allowed_ips: vec![ip_address_as_ip_network(session.client_address)?],
+            endpoint: None,
+            persistent_keepalive: None,
+        })
     }
 }
 
@@ -56,6 +69,14 @@ impl SessionManager {
         self.notify.clone()
     }
 
+    /// The first address in the client network is reserved for the server
+    pub fn server_address(&self) -> IpAddr {
+        self.client_network
+            .iter()
+            .find(|ip| ip != &self.client_network.network())
+            .expect("Client network is too small")
+    }
+
     pub async fn create(&self, client_public_key: String, user_data: UserData) -> Result<Session> {
         let mut sessions = self.sessions.write().await;
 
@@ -63,7 +84,8 @@ impl SessionManager {
             .checked_add_signed(self.session_duration)
             .ok_or_else(|| anyhow!("Overflow while calculating session end time"))?;
 
-        let mut addresses_in_use = sessions.keys();
+        let server_addresses = [self.client_network.network(), self.server_address()];
+        let mut addresses_in_use = itertools::chain(&server_addresses, sessions.keys());
         let client_address = self
             .client_network
             .iter()
@@ -84,6 +106,16 @@ impl SessionManager {
 
         self.notify.notify_waiters();
         Ok(session)
+    }
+
+    pub async fn get_peers(&self) -> Result<Vec<WireguardPeer>> {
+        Ok(self
+            .sessions
+            .read()
+            .await
+            .values()
+            .map(WireguardPeer::try_from)
+            .collect::<Result<_>>()?)
     }
 
     async fn next_expiring_session(self: Arc<Self>) -> Option<DateTime<Utc>> {

@@ -37,9 +37,9 @@ pub struct FullWireguardInterface {
 }
 
 impl FullWireguardInterface {
-    pub fn new(key_pair: WgKeyPair, interface: WireguardInterface) -> Self {
+    pub fn new(key_pair: &WgKeyPair, interface: WireguardInterface) -> Self {
         Self {
-            private_key: key_pair.private_key,
+            private_key: key_pair.private_key.clone(),
             interface,
             scripts: Default::default(),
         }

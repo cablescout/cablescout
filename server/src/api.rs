@@ -59,7 +59,7 @@ async fn finish_login(
     let hostname = req
         .connection_info()
         .host()
-        .split(":")
+        .split(':')
         .next()
         .unwrap()
         .to_owned();
