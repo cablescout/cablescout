@@ -6,8 +6,8 @@ use cablescout_api::{
 };
 use log::*;
 use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
 use std::path::PathBuf;
-use std::process::Stdio;
 use structopt::StructOpt;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
@@ -95,23 +95,44 @@ impl<'a> Tunnel<'a> {
         ))
     }
 
+    async fn run_wg_quick<I, S>(args: I) -> Result<()>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        debug!("Running wg-quick");
+        let output = Command::new("wg-quick").args(args).output().await?;
+        if !output.status.success() {
+            return Err(anyhow!(
+                "Running \"wg-quick\" failed:\nstdout: {}\nstderr: {}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        debug!("Output: {}", String::from_utf8_lossy(&output.stdout));
+        Ok(())
+    }
+
     pub async fn connect(&self, wg_config_path: PathBuf) -> Result<()> {
         let config = self.login().await?;
 
-        let mut config_path = PathBuf::from(wg_config_path);
-        config_path.push(format!("{}.conf", self.name));
-        debug!(
-            "Writing {}",
-            config_path.to_str().unwrap_or("ERROR FORMATTING PATH")
-        );
-        let mut config_file = File::create(config_path).await?;
+        let config_pathbuf = wg_config_path.join(format!("{}.conf", self.name));
+        let config_path = config_pathbuf
+            .to_str()
+            .expect("Could not format tunnel config path")
+            .to_owned();
+        debug!("Writing {}", config_path);
+        let mut config_file = File::create(config_pathbuf).await?;
         let config_data = serde_ini::to_string(&config)?;
         config_file.write_all(config_data.as_bytes()).await?;
+
+        Self::run_wg_quick(&["up", &config_path]).await?;
 
         Ok(())
     }
 
     pub async fn disconnect(&self) -> Result<()> {
+        Self::run_wg_quick(&["down", self.name]).await?;
         Ok(())
     }
 }
