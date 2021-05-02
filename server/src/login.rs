@@ -25,5 +25,5 @@ pub async fn validate_user(
     settings: &LoginSettings,
     id_token: &str,
 ) -> Result<UserData, LoginError> {
-    Err(LoginError::InvalidIdToken)
+    Ok(UserData {})
 }

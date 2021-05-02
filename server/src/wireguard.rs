@@ -1,12 +1,12 @@
 use crate::login::UserData;
 use crate::sessions::SessionManager;
 use anyhow::Result;
-use cablescout_api::ClientConfig;
 use chrono::prelude::*;
 use ipnetwork::IpNetwork;
 use std::net::IpAddr;
 use std::sync::Arc;
 use structopt::StructOpt;
+use wg_utils::{WireguardInterface, WireguardPeer};
 
 #[derive(Debug, StructOpt)]
 pub(crate) struct WireguardSettings {
@@ -74,28 +74,33 @@ impl Wireguard {
 
     pub(crate) async fn start_session(
         self: Arc<Self>,
+        hostname: &str,
         client_public_key: String,
         user_data: UserData,
-    ) -> Result<(ClientConfig, DateTime<Utc>)> {
+    ) -> Result<(WireguardInterface, WireguardPeer, DateTime<Utc>)> {
         let session = self
             .session_manager
             .create(client_public_key, user_data)
             .await?;
 
-        let client_config = ClientConfig {
-            client_address: session.client_address_as_ip_network()?,
-            dns_server: self.settings.wg_dns_server,
+        let interface = WireguardInterface {
+            address: session.client_address_as_ip_network()?,
+            dns: self.settings.wg_dns_server,
             mtu: self.settings.wg_mtu,
-            server_public_key: self.server_public_key.clone(),
-            server_port: self.settings.wg_port,
-            networks: vec![self.settings.wg_client_cidr]
+            listen_port: None,
+        };
+
+        let peer = WireguardPeer {
+            public_key: self.server_public_key.clone(),
+            endpoint: Some(format!("{}:{}", hostname, self.settings.wg_port)),
+            allowed_ips: vec![self.settings.wg_client_cidr]
                 .into_iter()
                 .chain(self.settings.wg_additional_networks.iter().copied())
                 .collect(),
             persistent_keepalive: self.settings.wg_client_keepalive.map(|value| value.into()),
         };
 
-        Ok((client_config, session.ends_at))
+        Ok((interface, peer, session.ends_at))
     }
 
     async fn run_server(self: Arc<Self>) {

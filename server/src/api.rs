@@ -46,6 +46,7 @@ async fn start_login(
 
 #[actix_web::post("/api/v1/login/finish")]
 async fn finish_login(
+    req: web::HttpRequest,
     api_server: web::Data<Arc<ApiServer>>,
     data: web::Json<cablescout_api::FinishLoginRequest>,
 ) -> ApiResult {
@@ -55,16 +56,24 @@ async fn finish_login(
         .await?;
 
     let user_data = validate_user(&api_server.login_settings, &data.id_token).await?;
+    let hostname = req
+        .connection_info()
+        .host()
+        .split(":")
+        .next()
+        .unwrap()
+        .to_owned();
 
-    let (client_config, session_ends_at) = api_server
+    let (interface, peer, session_ends_at) = api_server
         .wireguard
         .clone()
-        .start_session(login_data.client_public_key, user_data)
+        .start_session(&hostname, login_data.client_public_key, user_data)
         .await?;
     Ok(
         HttpResponse::Ok().json(cablescout_api::FinishLoginResponse {
             session_ends_at,
-            client_config,
+            interface,
+            peer,
         }),
     )
 }

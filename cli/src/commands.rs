@@ -22,7 +22,7 @@ impl Config {
         let (name, config) = self.find(name)?;
         let tunnel = Tunnel::new(name, config);
         println!("🚀 Connecting to {}", name);
-        tunnel.connect(self.wg_config_path()?).await?;
+        tunnel.connect().await?;
         println!("🎉 Successfully connected to {}", name);
         Ok(())
     }

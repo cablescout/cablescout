@@ -68,13 +68,6 @@ impl Config {
         Ok(shellexpand::full(path)?.into_owned().into())
     }
 
-    pub fn wg_config_path(&self) -> Result<PathBuf> {
-        let mut path = self.config_full_path()?;
-        path.push("wg");
-        create_dir_all(&path)?;
-        Ok(path)
-    }
-
     fn ensure_path(&self) -> Result<PathBuf> {
         let path = self.config_full_path()?;
         debug!(

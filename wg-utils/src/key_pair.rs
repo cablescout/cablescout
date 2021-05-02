@@ -4,9 +4,9 @@ use std::process::Stdio;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
-pub(crate) struct WgKeyPair {
-    pub(crate) public_key: String,
-    pub(crate) private_key: String,
+pub struct WgKeyPair {
+    pub public_key: String,
+    pub private_key: String,
 }
 
 impl WgKeyPair {
@@ -43,8 +43,8 @@ impl WgKeyPair {
         let private_key = Self::make_private_key().await?;
         let public_key = Self::make_public_key(private_key.as_bytes()).await?;
         Ok(Self {
-            private_key,
             public_key,
+            private_key,
         })
     }
 }

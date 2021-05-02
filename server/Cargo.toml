@@ -23,3 +23,4 @@ serde_json = "1.0.64"
 structopt = "0.3.21"
 thiserror = "1.0.24"
 tokio = { version = "1", features = ["sync", "time", "macros"] }
+wg-utils = { path = "../wg-utils" }

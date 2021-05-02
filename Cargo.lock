@@ -476,6 +476,7 @@ dependencies = [
  "ipnetwork",
  "serde",
  "serde_json",
+ "wg-utils",
 ]
 
 [[package]]
@@ -491,14 +492,13 @@ dependencies = [
  "log",
  "reqwest",
  "serde",
- "serde_ini",
  "serde_json",
- "serde_with",
  "serde_yaml",
  "shellexpand",
  "structopt",
  "tokio",
  "url",
+ "wg-utils",
 ]
 
 [[package]]
@@ -523,6 +523,7 @@ dependencies = [
  "structopt",
  "thiserror",
  "tokio",
+ "wg-utils",
 ]
 
 [[package]]
@@ -2475,6 +2476,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fcb14dea929042224824779fbc82d9fab8d2e6d3cbc0ac404de8edf489e77ff"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "wg-utils"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ipnetwork",
+ "log",
+ "serde",
+ "serde_ini",
+ "serde_with",
+ "tokio",
 ]
 
 [[package]]

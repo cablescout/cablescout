@@ -1,8 +1,6 @@
 mod commands;
 mod config;
-mod key_pair;
 mod tunnel;
-mod wg_quick;
 
 use anyhow::Result;
 use config::Config;
