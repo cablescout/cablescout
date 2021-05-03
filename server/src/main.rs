@@ -39,15 +39,14 @@ async fn _main(options: Options) -> Result<()> {
 #[actix_web::main]
 async fn main() {
     let options = Options::from_args();
+    let default_level = match options.debug {
+        true => log::LevelFilter::Debug,
+        false => log::LevelFilter::Info,
+    };
 
     env_logger::Builder::new()
-        .filter(
-            Some(env!("CARGO_CRATE_NAME")),
-            match options.debug {
-                true => log::LevelFilter::Debug,
-                false => log::LevelFilter::Info,
-            },
-        )
+        .filter(Some(env!("CARGO_CRATE_NAME")), default_level)
+        .filter(Some("actix_web"), default_level)
         .filter(None, log::LevelFilter::Info)
         .init();
 

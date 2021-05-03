@@ -1,10 +1,12 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use cablescout_api::{
     FinishLoginRequest, FinishLoginResponse, StartLoginRequest, StartLoginResponse,
 };
 use log::*;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use structopt::StructOpt;
+use tokio::io::{stdin, AsyncBufReadExt, BufReader};
+use tokio::process::Command;
 use url::Url;
 use wg_utils::{wg_quick_down, wg_quick_up, FullWireguardInterface, WgKeyPair, WireguardConfig};
 
@@ -16,11 +18,11 @@ pub struct TunnelConfig {
 }
 
 impl TunnelConfig {
-    fn start_url(&self) -> Result<Url> {
+    fn start_api_url(&self) -> Result<Url> {
         Ok(self.endpoint.join("/api/v1/login/start")?)
     }
 
-    fn finish_url(&self) -> Result<Url> {
+    fn finish_api_url(&self) -> Result<Url> {
         Ok(self.endpoint.join("/api/v1/login/finish")?)
     }
 }
@@ -33,9 +35,31 @@ fn http_client() -> Result<reqwest::Client> {
         .build()?)
 }
 
+async fn http_post<Req, Res>(url: Url, req: Req) -> Result<Res>
+where
+    Req: Serialize,
+    Res: DeserializeOwned,
+{
+    Ok(http_client()?
+        .post(url)
+        .json(&req)
+        .send()
+        .await?
+        .json()
+        .await?)
+}
+
 pub struct Tunnel<'a> {
     name: &'a str,
     config: &'a TunnelConfig,
+}
+
+async fn read_line() -> Result<String> {
+    BufReader::new(stdin())
+        .lines()
+        .next_line()
+        .await?
+        .ok_or_else(|| anyhow!("Error reading from stdin"))
 }
 
 impl<'a> Tunnel<'a> {
@@ -47,30 +71,33 @@ impl<'a> Tunnel<'a> {
         let key_pair = WgKeyPair::new().await?;
 
         debug!("Sending login start request");
-        let start_res: StartLoginResponse = http_client()?
-            .post(self.config.start_url()?)
-            .json(&StartLoginRequest {
+        let start_res: StartLoginResponse = http_post(
+            self.config.start_api_url()?,
+            StartLoginRequest {
                 client_public_key: key_pair.public_key.clone(),
-            })
-            .send()
-            .await?
-            .json()
-            .await?;
+            },
+        )
+        .await?;
         debug!("Got login start response: {:#?}", start_res);
 
-        // TODO: Login
+        Command::new("open")
+            .arg(start_res.auth_url.to_string())
+            .spawn()?;
+
+        println!("--------------------------------------------------");
+        println!("               Enter code below                   ");
+        println!("--------------------------------------------------");
+        let auth_code = read_line().await?.trim().to_owned();
 
         debug!("Sending login finish request");
-        let finish_res: FinishLoginResponse = http_client()?
-            .post(self.config.finish_url()?)
-            .json(&FinishLoginRequest {
+        let finish_res: FinishLoginResponse = http_post(
+            self.config.finish_api_url()?,
+            FinishLoginRequest {
                 login_token: start_res.login_token,
-                id_token: "".to_owned(),
-            })
-            .send()
-            .await?
-            .json()
-            .await?;
+                auth_code,
+            },
+        )
+        .await?;
         debug!("Got login finish response: {:#?}", finish_res);
 
         Ok(WireguardConfig::new(

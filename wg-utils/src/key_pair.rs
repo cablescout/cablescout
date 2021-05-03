@@ -16,7 +16,7 @@ impl WgKeyPair {
         if !child.status.success() {
             return Err(anyhow!("Running \"wg genkey\" failed"));
         }
-        Ok(String::from_utf8(child.stdout)?)
+        Ok(String::from_utf8(child.stdout)?.trim().to_owned())
     }
 
     async fn make_public_key(private_key: &[u8]) -> Result<String> {
@@ -36,7 +36,7 @@ impl WgKeyPair {
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
-        Ok(String::from_utf8(output.stdout)?)
+        Ok(String::from_utf8(output.stdout)?.trim().to_owned())
     }
 
     pub async fn new() -> Result<Self> {

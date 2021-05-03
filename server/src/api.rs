@@ -1,6 +1,6 @@
 use crate::api_result::ApiResult;
-use crate::login::{validate_user, LoginSettings};
-use crate::tokens::TokenGenerator;
+use crate::login::{LoginSettings, OidcLogin};
+use crate::tokens::{random_string, TokenGenerator};
 use crate::wireguard::Wireguard;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer};
@@ -25,27 +25,52 @@ pub struct ApiSettings {
 #[derive(Debug, Serialize, Deserialize)]
 struct LoginData {
     client_public_key: String,
+    nonce: String,
+}
+
+#[actix_web::get("/finish")]
+async fn finish_page() -> ApiResult {
+    Ok(HttpResponse::Ok().body(include_str!("pages/finish.html")))
+}
+
+fn get_hostname(req: &web::HttpRequest) -> String {
+    req.connection_info()
+        .host()
+        .split(':')
+        .next()
+        .unwrap()
+        .to_owned()
 }
 
 #[actix_web::post("/api/v1/login/start")]
-async fn start_login(
+async fn start_login_api(
+    req: web::HttpRequest,
     api_server: web::Data<Arc<ApiServer>>,
     data: web::Json<cablescout_api::StartLoginRequest>,
 ) -> ApiResult {
+    let nonce = random_string::<15>();
+
     let login_token = api_server
         .token_generator
         .generate(LoginData {
             client_public_key: data.client_public_key.clone(),
+            nonce: nonce.clone(),
         })
         .await?;
+
+    let auth_url = api_server
+        .oidc_login
+        .get_auth_url(&req.connection_info(), &login_token, &nonce)
+        .await?;
+
     Ok(HttpResponse::Ok().json(cablescout_api::StartLoginResponse {
+        auth_url,
         login_token,
-        oidc_client_id: api_server.login_settings.google_client_id.clone(),
     }))
 }
 
 #[actix_web::post("/api/v1/login/finish")]
-async fn finish_login(
+async fn finish_login_api(
     req: web::HttpRequest,
     api_server: web::Data<Arc<ApiServer>>,
     data: web::Json<cablescout_api::FinishLoginRequest>,
@@ -55,14 +80,11 @@ async fn finish_login(
         .validate(&data.login_token)
         .await?;
 
-    let user_data = validate_user(&api_server.login_settings, &data.id_token).await?;
-    let hostname = req
-        .connection_info()
-        .host()
-        .split(':')
-        .next()
-        .unwrap()
-        .to_owned();
+    let user_data = api_server
+        .oidc_login
+        .validate_user(&req.connection_info(), &data.auth_code, &login_data.nonce)
+        .await?;
+    let hostname = get_hostname(&req);
 
     let (interface, peer, session_ends_at) = api_server
         .wireguard
@@ -80,7 +102,7 @@ async fn finish_login(
 
 pub(crate) struct ApiServer {
     api_settings: ApiSettings,
-    login_settings: LoginSettings,
+    oidc_login: OidcLogin,
     wireguard: Arc<Wireguard>,
     token_generator: TokenGenerator,
 }
@@ -94,9 +116,10 @@ impl ApiServer {
         let token_generator = TokenGenerator::new(chrono::Duration::from_std(
             login_settings.login_duration.into(),
         )?)?;
+        let oidc_login = OidcLogin::new(login_settings);
         Ok(Arc::new(Self {
             api_settings,
-            login_settings,
+            oidc_login,
             wireguard,
             token_generator,
         }))
@@ -123,8 +146,9 @@ impl ApiServer {
                 .wrap(Logger::default())
                 .app_data(json_config)
                 .data(self.clone())
-                .service(start_login)
-                .service(finish_login)
+                .service(finish_page)
+                .service(start_login_api)
+                .service(finish_login_api)
         })
         .bind(&bind_address)?
         .run()

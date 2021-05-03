@@ -9,4 +9,5 @@ chrono = { version = "0.4.19", features = ["serde"] }
 ipnetwork = "0.18.0"
 serde = { version = "1.0.125", features = ["derive"] }
 serde_json = "1.0.64"
+url = { version = "2.2.1", features = ["serde"] }
 wg-utils = { path = "../wg-utils" }

@@ -6,8 +6,8 @@ use serde_json::json;
 
 #[derive(thiserror::Error, Debug)]
 pub enum LoginError {
-    #[error("The ID token provided for identifying the user is wrong, please check the OIDC provider settings to make sure the client ID and secret are configured correctly")]
-    InvalidIdToken,
+    //    #[error("The ID token provided for identifying the user is wrong, please check the OIDC provider settings to make sure the client ID and secret are configured correctly")]
+//    InvalidIdToken,
 }
 
 #[derive(thiserror::Error, Debug)]

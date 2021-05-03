@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use chrono::Duration;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use ring::rand::{SecureRandom, SystemRandom};
+use rand::{thread_rng, Rng};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 const SECRET_BYTES: usize = 64;
@@ -21,15 +21,25 @@ pub struct Claims<T> {
     data: T,
 }
 
+pub fn random_bytes<const N: usize>() -> [u8; N] {
+    let mut arr: [u8; N] = [0; N];
+    thread_rng().fill(&mut arr[..]);
+    arr
+}
+
+pub fn random_string<const N: usize>() -> String {
+    thread_rng()
+        .sample_iter(rand::distributions::Alphanumeric)
+        .take(N)
+        .map(char::from)
+        .collect()
+}
+
 impl TokenGenerator {
     pub fn new(expires_after: Duration) -> Result<Self> {
-        let rng = SystemRandom::new();
-        let mut secret: [u8; SECRET_BYTES] = [0; SECRET_BYTES];
-        rng.fill(&mut secret)?;
-
         Ok(Self {
             expires_after,
-            secret,
+            secret: random_bytes::<SECRET_BYTES>(),
             validation: Validation {
                 validate_exp: true,
                 validate_nbf: true,

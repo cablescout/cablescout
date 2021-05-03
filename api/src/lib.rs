@@ -1,5 +1,6 @@
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
+use url::Url;
 use wg_utils::{WireguardInterface, WireguardPeer};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -9,14 +10,14 @@ pub struct StartLoginRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StartLoginResponse {
+    pub auth_url: Url,
     pub login_token: String,
-    pub oidc_client_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FinishLoginRequest {
     pub login_token: String,
-    pub id_token: String,
+    pub auth_code: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
