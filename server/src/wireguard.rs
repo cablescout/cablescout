@@ -9,7 +9,7 @@ use std::sync::Arc;
 use structopt::StructOpt;
 use wg_utils::{
     wg_quick_up, FullWireguardInterface, WgKeyPair, WireguardConfig, WireguardInterface,
-    WireguardPeer,
+    WireguardInterfaceScripts, WireguardPeer,
 };
 
 #[derive(Debug, StructOpt)]
@@ -51,6 +51,14 @@ pub(crate) struct WireguardSettings {
     /// Persistent keepalive for the server
     #[structopt(long, env = "WG_SERVER_KEEPALIVE")]
     wg_server_keepalive: Option<humantime::Duration>,
+
+    /// Post up script
+    #[structopt(long, env = "WG_POST_UP_SCRIPT")]
+    wg_post_up_script: Option<String>,
+
+    /// Post down script
+    #[structopt(long, env = "WG_POST_DOWN_SCRIPT")]
+    wg_post_down_script: Option<String>,
 }
 
 pub(crate) struct Wireguard {
@@ -121,13 +129,17 @@ impl Wireguard {
     }
 
     async fn update_server(self: Arc<Self>) -> Result<()> {
-        let interface = FullWireguardInterface::new(
+        let interface = FullWireguardInterface::new_with_scripts(
             &self.key_pair,
             WireguardInterface {
                 address: ip_address_as_ip_network(self.session_manager.server_address())?,
                 listen_port: Some(self.settings.wg_port),
                 mtu: self.settings.wg_mtu,
                 dns: None,
+            },
+            WireguardInterfaceScripts {
+                post_up: self.settings.wg_post_up_script.clone(),
+                post_down: self.settings.wg_post_down_script.clone(),
             },
         );
 

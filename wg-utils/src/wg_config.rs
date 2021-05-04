@@ -22,8 +22,8 @@ pub struct WireguardInterface {
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct WireguardInterfaceScripts {
-    post_up: Option<String>,
-    post_down: Option<String>,
+    pub post_up: Option<String>,
+    pub post_down: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -47,12 +47,12 @@ impl FullWireguardInterface {
     }
 
     pub fn new_with_scripts(
-        key_pair: WgKeyPair,
+        key_pair: &WgKeyPair,
         interface: WireguardInterface,
         scripts: WireguardInterfaceScripts,
     ) -> Self {
         Self {
-            private_key: key_pair.private_key,
+            private_key: key_pair.private_key.clone(),
             interface,
             scripts,
         }
