@@ -102,7 +102,7 @@ impl<'a> Tunnel<'a> {
 
         Ok(WireguardConfig::new(
             FullWireguardInterface::new(&key_pair, finish_res.interface),
-            finish_res.peer,
+            vec![finish_res.peer],
         ))
     }
 

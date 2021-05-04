@@ -1,6 +1,6 @@
 use crate::login::UserData;
 use crate::sessions::{ip_address_as_ip_network, SessionManager};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use chrono::prelude::*;
 use ipnetwork::IpNetwork;
 use log::*;
@@ -131,15 +131,9 @@ impl Wireguard {
             },
         );
 
-        let peer = self
-            .session_manager
-            .get_peers()
-            .await?
-            .into_iter()
-            .next()
-            .ok_or_else(|| anyhow!("No clients configured"))?;
+        let peers = self.session_manager.get_peers().await?;
 
-        let config = WireguardConfig::new(interface, peer);
+        let config = WireguardConfig::new(interface, peers);
         wg_quick_up("server", config).await?;
 
         Ok(())
