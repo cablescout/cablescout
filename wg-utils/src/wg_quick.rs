@@ -39,6 +39,10 @@ pub async fn wg_quick_up(name: &str, config: WireguardConfig) -> Result<()> {
     let config_data = serde_ini::to_string(&config)?;
     config_file.write_all(config_data.as_bytes()).await?;
 
+    if let Err(err) = run_wg_quick(&["down", name]).await {
+        debug!("Error while running 'wg-quick down' before 'wg-quick up': {}", err);
+    }
+
     run_wg_quick(&["up", &config_path]).await
 }
 
