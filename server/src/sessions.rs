@@ -3,7 +3,6 @@ use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use log::*;
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -47,7 +46,7 @@ impl TryFrom<&Session> for WireguardPeer {
 pub(crate) struct SessionManager {
     client_network: IpNetwork,
     session_duration: chrono::Duration,
-    sessions: RwLock<BTreeMap<IpAddr, Session>>,
+    sessions: RwLock<Vec<Session>>,
     notify: Arc<Notify>,
 }
 
@@ -85,7 +84,10 @@ impl SessionManager {
             .ok_or_else(|| anyhow!("Overflow while calculating session end time"))?;
 
         let server_addresses = [self.client_network.network(), self.server_address()];
-        let mut addresses_in_use = itertools::chain(&server_addresses, sessions.keys());
+        let mut addresses_in_use = itertools::sorted(itertools::chain(
+            &server_addresses,
+            sessions.iter().map(|session| &session.client_address),
+        ));
         let client_address = self
             .client_network
             .iter()
@@ -99,11 +101,7 @@ impl SessionManager {
             client_address,
         };
 
-        // TODO: Use expect_none()
-        if sessions.insert(client_address, session.clone()).is_some() {
-            panic!("Inserted session overrides existing IpAddr, this shouldn't happen");
-        }
-
+        sessions.push(session.clone());
         self.notify.notify_waiters();
         Ok(session)
     }
@@ -113,14 +111,14 @@ impl SessionManager {
             .sessions
             .read()
             .await
-            .values()
+            .iter()
             .map(WireguardPeer::try_from)
             .collect::<Result<_>>()?)
     }
 
     async fn next_expiring_session(self: Arc<Self>) -> Option<DateTime<Utc>> {
         let sessions = self.sessions.read().await;
-        sessions.values().map(|session| session.ends_at).max()
+        sessions.iter().map(|session| session.ends_at).max()
     }
 
     async fn expire_old_sessions(self: Arc<Self>) {
@@ -144,11 +142,12 @@ impl SessionManager {
                 }
 
                 _ = timeout => {
+                    debug!("Removing old sessions");
                     let mut sessions = self.sessions.write().await;
+                    let len_before = sessions.len();
                     let now = Utc::now();
-                    for (_ip, expired) in sessions.drain_filter(|_ip, session| session.ends_at < now) {
-                        info!("Session expired: {:?}", expired);
-                    }
+                    sessions.retain(|session| session.ends_at >= now);
+                    info!("Removed {} sessions", sessions.len() - len_before);
                 }
             }
         }

@@ -1,5 +1,3 @@
-#![feature(btree_drain_filter)]
-
 mod api;
 mod api_result;
 mod login;
