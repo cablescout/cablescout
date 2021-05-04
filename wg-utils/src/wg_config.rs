@@ -4,7 +4,7 @@ use log::*;
 use serde::{Deserialize, Serialize};
 use serde_with::rust::StringWithSeparator;
 use serde_with::skip_serializing_none;
-use serde_with::SpaceSeparator;
+use serde_with::CommaSeparator;
 use std::net::IpAddr;
 use std::time::Duration;
 
@@ -64,7 +64,7 @@ impl FullWireguardInterface {
 #[serde(rename_all = "PascalCase")]
 pub struct WireguardPeer {
     pub public_key: String,
-    #[serde(with = "StringWithSeparator::<SpaceSeparator>")]
+    #[serde(with = "StringWithSeparator::<CommaSeparator>")]
     pub allowed_ips: Vec<IpNetwork>,
     pub endpoint: Option<String>,
     pub persistent_keepalive: Option<Duration>,
