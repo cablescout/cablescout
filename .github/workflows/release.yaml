@@ -1,0 +1,94 @@
+name: Release version
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.*'
+
+jobs:
+  release-server:
+    name: Release server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        id: rust-toolchain
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Download build cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}-
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-
+
+      - name: Build
+        run: |
+          cargo build --release --bin=cablescout-server
+          mv ./target/release/cablescout-server{,-linux-x86_64}
+
+      - name: Upload assets
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            ./target/release/cablescout-server-*
+
+  release-cli:
+    name: Release CLI
+    strategy:
+      matrix:
+        config:
+          - os: ubuntu-latest
+          - os: macos-latest
+          - os: windows-latest
+    runs-on: ${{ matrix.config.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        id: rust-toolchain
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Download build cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}-
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-
+
+      - name: Build
+        run: |
+          cargo build --release --bin=cablescout-cli
+          if [ "$RUNNER_OS" == "Windows"]
+          then
+            ren target\release\cablescout-cli.exe target\release\cablescout-cli-windows-x86_64.exe
+          else
+            mv ./target/release/cablescout-cli{,-`echo $RUNNER_OS | tr '[:upper:]' '[:lower:]'`-x86_64}
+          fi
+
+      - name: Upload assets
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            ./target/release/cablescout-cli-*
