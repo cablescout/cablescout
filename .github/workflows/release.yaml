@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -56,6 +58,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1

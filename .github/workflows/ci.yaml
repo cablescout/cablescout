@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -47,6 +49,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
         with:
+          token: ${{ secrets.GH_PAT }}
           fetch-depth: '0'
 
       - name: Bump version and push tag
