@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build:
+  test:
     name: Run clippy and tests
     runs-on: ubuntu-latest
     steps:
@@ -38,3 +38,21 @@ jobs:
 
       - name: Cargo test
         run: cargo test --release
+
+  tag:
+    name: Create a tag
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.34.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          DEFAULT_BUMP: patch
+          RELEASE_BRANCHES: main
