@@ -3,11 +3,27 @@
   "version": "1.0.0",
   "main": "src/main.js",
   "license": "AGPL-3.0",
-  "devDependencies": {
-    "electron": "^12.0.6"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cablescout/cablescout.git",
+    "directory": "app"
   },
   "scripts": {
     "start": "electron ."
+  },
+  "build": {
+    "appId": "io.cablescout",
+    "productName": "Cablescout",
+    "mac": {
+      "target": "pkg"
+    },
+    "win": {
+      "target": "msi"
+    }
+  },
+  "devDependencies": {
+    "electron": "^12.0.6",
+    "electron-builder": "^22.10.5"
   },
   "dependencies": {
     "axios": "^0.21.1",
