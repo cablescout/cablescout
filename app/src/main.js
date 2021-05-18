@@ -1,5 +1,6 @@
 const path = require('path')
 const { app, Menu, Tray } = require('electron')
+const log = require('electron-log')
 const { CONFIG } = require('./config')
 const { STATUS } = require('./status')
 const { Tunnel } = require('./tunnel')
@@ -31,7 +32,7 @@ async function connectTunnel(name, config) {
     const tunnel = new Tunnel(name, config)
     await tunnel.connect()
   } catch (err) {
-    console.error(err)
+    log.error(err)
     STATUS.setCurrTunnel(null)
   }
   updateTray()

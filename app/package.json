@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
+    "electron-log": "^4.3.5",
     "js-yaml": "^4.1.0",
     "sudo-prompt": "^9.2.1"
   }
