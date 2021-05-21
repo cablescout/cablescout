@@ -4,6 +4,7 @@
     "noImplicitAny": true,
     "sourceMap": true,
     "outDir": "dist",
+    "strict": true,
     "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*"]

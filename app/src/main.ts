@@ -9,7 +9,7 @@ const TRAY_ICON_OFF = path.join(__dirname, 'tray-icon', 'Cablescout.Tray.Off.Tem
 const TRAY_ICON_PROGRESS = path.join(__dirname, 'tray-icon', 'Cablescout.Tray.Progress.Template.png')
 const TRAY_ICON_ON = path.join(__dirname, 'tray-icon', 'Cablescout.Tray.On.Template.png')
 
-let tray: Tray = null
+let tray: Tray | null = null
 
 async function appWillQuit(event: Event) {
     log.warn('[main] App about to quit')
@@ -32,14 +32,14 @@ async function connectTunnel(name: string, config: TunnelConfig) {
         await tunnel.connect()
     } catch (err) {
         log.error(`[main] error: ${err}`)
-        STATUS.setCurrTunnel(null)
+        STATUS.setCurrTunnel(undefined)
     }
     updateTray()
 }
 
 async function disconnectTunnel(tunnel: Tunnel) {
     await tunnel.disconnect()
-    STATUS.setCurrTunnel(null)
+    STATUS.setCurrTunnel(undefined)
     updateTray()
 }
 
@@ -50,13 +50,15 @@ async function updateTray() {
     const curr_tunnel = STATUS.currTunnel()
     log.debug(`[main] Current tunnel: ${curr_tunnel ? curr_tunnel.name : 'null'}`)
 
-    const tunnel_menu_items = Object.entries(tunnels).map(([name, tunnel_config]) => {
-        const is_curr = curr_tunnel && (curr_tunnel.name === name)
-        return {
-            label: is_curr ? `Disconnect ${name}` : `Connect ${name}`,
-            click: is_curr ? (() => disconnectTunnel(curr_tunnel)) : (() => connectTunnel(name, tunnel_config))
+    const tunnel_menu_items = Object.entries(tunnels).map(
+        ([name, tunnel_config]) => (curr_tunnel && (curr_tunnel.name === name)) ? {
+            label: `Disconnect ${name}`,
+            click: () => disconnectTunnel(curr_tunnel),
+        } : {
+            label: `Connect ${name}`,
+            click: () => connectTunnel(name, tunnel_config),
         }
-    })
+    )
 
     const menu = Menu.buildFromTemplate([
         ...tunnel_menu_items,

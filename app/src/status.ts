@@ -3,11 +3,11 @@ import { Tunnel } from './tunnel'
 class Status {
     private curr_tunnel?: Tunnel
 
-    currTunnel(): Tunnel {
+    currTunnel(): Tunnel | undefined {
         return this.curr_tunnel
     }
 
-    setCurrTunnel(tunnel: Tunnel) {
+    setCurrTunnel(tunnel?: Tunnel) {
         this.curr_tunnel = tunnel
     }
 }

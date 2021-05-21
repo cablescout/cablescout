@@ -27,19 +27,32 @@ export interface WgQuickConfig {
 
 async function exec(command: string, as_root = false): Promise<string> {
     return new Promise((resolve, reject) => {
-        const callback = (error: Error, stdout: string | Buffer, stderr: string | Buffer) => {
-            if (error) {
-                reject(`Error running command: ${error}:\n${stdout}\n${stderr}`)
-            } else if (stdout instanceof Buffer) {
-                resolve(stdout.toString().trim())
-            } else {
-                resolve(stdout.trim())
-            }
-        }
         if (as_root) {
-            sudo.exec(command, { name: 'Cablescout' }, callback)
+            sudo.exec(
+                command,
+                { name: 'Cablescout' },
+                (error?: Error | undefined, stdout?: string | Buffer | undefined, stderr?: string | Buffer | undefined) => {
+                    if (error) {
+                        reject(`Error running command: ${error}:\n${stdout}\n${stderr}`)
+                    } else if (!stdout) {
+                        resolve('')
+                    } else if (stdout instanceof Buffer) {
+                        resolve(stdout.toString().trim())
+                    } else {
+                        resolve(stdout.trim())
+                    }
+                },
+            )
         } else {
-            childProcess.exec(command, callback)
+            childProcess.exec(
+                command, (error: childProcess.ExecException | null, stdout: string, stderr: string) => {
+                    if (error) {
+                        reject(`Error running command: ${error}:\n${stdout}\n${stderr}`)
+                    } else {
+                        resolve(stdout.trim())
+                    }
+                },
+            )
         }
     })
 }

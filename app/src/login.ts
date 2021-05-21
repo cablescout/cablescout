@@ -1,6 +1,6 @@
 import { BrowserWindow } from 'electron'
 
-export function oauthLogin(login_url: string, finish_url: string): Promise<string> {
+export function oauthLogin(login_url: string, finish_url: string): Promise<string | null> {
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
       width: 450,
