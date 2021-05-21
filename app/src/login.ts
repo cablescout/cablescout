@@ -1,6 +1,6 @@
-const { BrowserWindow } = require('electron')
+import { BrowserWindow } from 'electron'
 
-function oauthLogin(login_url, finish_url) {
+export function oauthLogin(login_url: string, finish_url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
       width: 450,
@@ -29,8 +29,4 @@ function oauthLogin(login_url, finish_url) {
       },
     )
   })
-}
-
-module.exports = {
-  oauthLogin,
 }
