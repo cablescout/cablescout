@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    name: Run tests
+    name: Run server/CLI tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -39,9 +39,44 @@ jobs:
       - name: Cargo test
         run: cargo test --release
 
+  lint-app:
+    name: Lint app
+    runs-on: ubuntu-latest
+    env:
+      NODEJS_VERSION: 15
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Node.js, NPM and Yarn
+        id: setup-node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.NODEJS_VERSION }}
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            app/node_modules
+          key: ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-${{ hashFiles('app/yarn.lock') }}-
+          restore-keys: |
+            ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-
+
+      - name: Install node modules
+        run: |
+          cd app
+          yarn install
+
+      - name: Run eslint
+        run: |
+          cd app
+          yarn lint
+
   tag:
     name: Create a tag
-    needs: test
+    needs:
+      - test
+      - lint-app
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -158,14 +193,25 @@ jobs:
           - os: macos-latest
 #          - os: windows-latest
     runs-on: ${{ matrix.config.os }}
+    env:
+      NODEJS_VERSION: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Install Node.js, NPM and Yarn
+        id: setup-node
         uses: actions/setup-node@v1
         with:
-          node-version: 15
+          node-version: ${{ env.NODEJS_VERSION }}
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            app/node_modules
+          key: ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-${{ hashFiles('app/yarn.lock') }}-
+          restore-keys: |
+            ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-
 
       - name: Install node modules
         run: |
