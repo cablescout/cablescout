@@ -7,6 +7,7 @@
     "url": "https://github.com/cablescout/cablescout.git",
     "directory": "app"
   },
+  "main": "./dist/main.js",
   "scripts": {
     "build": "tsc && copyfiles --up 1 ./src/tray-icon/* ./dist/",
     "watch": "tsc -w",
@@ -16,12 +17,17 @@
   "build": {
     "appId": "io.cablescout",
     "productName": "Cablescout",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
     "mac": {
       "target": "pkg"
     },
     "win": {
       "target": "msi"
-    }
+    },
+    "forceCodeSigning": true
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.1",
