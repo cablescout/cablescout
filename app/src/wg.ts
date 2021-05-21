@@ -6,23 +6,23 @@ import { to_ini } from './stupid-ini'
 const WG_CONFIG_DIR = '/etc/wireguard'
 
 export interface WgQuickInterface {
-    PrivateKey: string,
-    Address: string,
-    Dns?: string,
-    Mtu?: number,
-    ListenPort?: number,
+    PrivateKey: string;
+    Address: string;
+    Dns?: string;
+    Mtu?: number;
+    ListenPort?: number;
 }
 
 export interface WgQuickPeer {
-    PublicKey: string,
-    AllowedIps: string,
-    Endpoint: string,
-    PersistentKeepalive?: number,
+    PublicKey: string;
+    AllowedIps: string;
+    Endpoint: string;
+    PersistentKeepalive?: number;
 }
 
 export interface WgQuickConfig {
-    Interface: WgQuickInterface,
-    Peer: WgQuickPeer,
+    Interface: WgQuickInterface;
+    Peer: WgQuickPeer;
 }
 
 async function exec(command: string, as_root = false): Promise<string> {

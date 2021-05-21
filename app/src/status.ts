@@ -1,23 +1,14 @@
-class Status {
-    private curr_tunnel?: string
-    private is_connected = false
+import { Tunnel } from './tunnel'
 
-    // TODO: Find this out automatically somehow
-    currTunnel(): string {
+class Status {
+    private curr_tunnel?: Tunnel
+
+    currTunnel(): Tunnel {
         return this.curr_tunnel
     }
 
-    // TODO: Find this out automatically somehow
-    setCurrTunnel(name?: string) {
-        this.curr_tunnel = name
-    }
-
-    isConnected(): boolean {
-        return this.is_connected
-    }
-
-    setConnected(is_connected: boolean) {
-        this.is_connected = is_connected
+    setCurrTunnel(tunnel: Tunnel) {
+        this.curr_tunnel = tunnel
     }
 }
 

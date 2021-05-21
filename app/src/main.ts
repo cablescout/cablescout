@@ -13,26 +13,22 @@ let tray: Tray = null
 
 async function appWillQuit(event: Event) {
     log.warn('[main] App about to quit')
-    if (!STATUS.isConnected()) {
+    const curr_tunnel = STATUS.currTunnel()
+    if (!curr_tunnel) {
         log.info('[main] No tunnel connected, quitting app')
         return
     }
     event.preventDefault()
-    const tunnel_name = STATUS.currTunnel()
-    log.info(`[main] Disconnecting ${tunnel_name} before quitting app`)
-    const tunnels = await CONFIG.getTunnels()
-    const tunnel_config = tunnels[tunnel_name]
-    if (tunnel_config) {
-        await disconnectTunnel(tunnel_name, tunnel_config)
-    }
+    log.info(`[main] Disconnecting ${curr_tunnel.name} before quitting app`)
+    await curr_tunnel.disconnect()
     app.quit()
 }
 
 async function connectTunnel(name: string, config: TunnelConfig) {
     try {
-        STATUS.setCurrTunnel(name)
-        updateTray()
         const tunnel = new Tunnel(name, config)
+        STATUS.setCurrTunnel(tunnel)
+        updateTray()
         await tunnel.connect()
     } catch (err) {
         log.error(`[main] error: ${err}`)
@@ -41,8 +37,7 @@ async function connectTunnel(name: string, config: TunnelConfig) {
     updateTray()
 }
 
-async function disconnectTunnel(name: string, config: TunnelConfig) {
-    const tunnel = new Tunnel(name, config)
+async function disconnectTunnel(tunnel: Tunnel) {
     await tunnel.disconnect()
     STATUS.setCurrTunnel(null)
     updateTray()
@@ -52,14 +47,14 @@ async function updateTray() {
     log.debug('[main] Updating tray icon')
     const tunnels = await CONFIG.getTunnels()
 
-    const current_tunnel = STATUS.currTunnel()
-    log.debug(`[main] Current tunnel: ${current_tunnel}`)
+    const curr_tunnel = STATUS.currTunnel()
+    log.debug(`[main] Current tunnel: ${curr_tunnel ? curr_tunnel.name : 'null'}`)
 
     const tunnel_menu_items = Object.entries(tunnels).map(([name, tunnel_config]) => {
-        const is_curr = current_tunnel === name
+        const is_curr = curr_tunnel && (curr_tunnel.name === name)
         return {
             label: is_curr ? `Disconnect ${name}` : `Connect ${name}`,
-            click: is_curr ? (() => disconnectTunnel(name, tunnel_config)) : (() => connectTunnel(name, tunnel_config))
+            click: is_curr ? (() => disconnectTunnel(curr_tunnel)) : (() => connectTunnel(name, tunnel_config))
         }
     })
 
@@ -94,7 +89,7 @@ async function updateTray() {
         //}
     }
 
-    tray.setImage(STATUS.currTunnel() ? (STATUS.isConnected() ? TRAY_ICON_ON : TRAY_ICON_PROGRESS) : TRAY_ICON_OFF)
+    tray.setImage(curr_tunnel ? (curr_tunnel.isConnected() ? TRAY_ICON_ON : TRAY_ICON_PROGRESS) : TRAY_ICON_OFF)
     tray.setContextMenu(menu)
 }
 

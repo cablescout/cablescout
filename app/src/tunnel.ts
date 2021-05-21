@@ -2,13 +2,14 @@ import axios from 'axios'
 import log from 'electron-log'
 import { wgKeyPair, wgQuickUp, wgQuickDown, WgQuickConfig } from './wg'
 import { oauthLogin } from './login'
-import { STATUS } from './status'
 
 export interface TunnelConfig {
     endpoint: string,
 }
 
 export class Tunnel {
+    private is_connected = false
+
     constructor(public name: string, public config: TunnelConfig) {
     }
 
@@ -63,12 +64,16 @@ export class Tunnel {
         log.info(`[tunnel:${this.name}:connect] Connecting`)
         const config = await this.login()
         await wgQuickUp(this.name, config)
-        STATUS.setConnected(true)
+        this.is_connected = true
     }
 
     async disconnect(): Promise<void> {
         log.info(`[tunnel:${this.name}:disconnect] Disconnecting`)
         await wgQuickDown(this.name)
-        STATUS.setConnected(false)
+        this.is_connected = false
+    }
+
+    isConnected(): boolean {
+        return this.is_connected
     }
 }
