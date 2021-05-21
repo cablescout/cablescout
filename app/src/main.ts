@@ -94,7 +94,7 @@ async function updateTray() {
 }
 
 async function main() {
-    log.info('[main] Starting app')
+    log.info('[main] =================== Starting app ===================')
     await app.whenReady()
     log.debug('[main] App ready')
 
