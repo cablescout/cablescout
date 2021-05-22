@@ -1,5 +1,5 @@
 import * as path from 'path'
-import { app, Menu, Tray } from 'electron'
+import { app, dialog, Menu, Tray } from 'electron'
 import log from 'electron-log'
 import { CONFIG } from './config'
 import { STATUS } from './status'
@@ -32,6 +32,7 @@ async function connectTunnel(name: string, config: TunnelConfig) {
         await tunnel.connect()
     } catch (err) {
         log.error(`[main] error: ${err}`)
+        dialog.showErrorBox(`Error connecting to ${name}`, err)
         STATUS.setCurrTunnel(undefined)
     }
     updateTray()
