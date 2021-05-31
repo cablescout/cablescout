@@ -182,6 +182,16 @@ jobs:
           cd app
           yarn version --no-git-tag-version --new-version ${{ needs.tag.outputs.tag_without_v }}
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
+
+      - name: Build
+        run: |
+          cd app
+          yarn build
+
       - name: Build Electron app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -224,6 +234,16 @@ jobs:
         run: |
           cd app
           yarn version --no-git-tag-version --new-version ${{ needs.tag.outputs.tag_without_v }}
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
+
+      - name: Build
+        run: |
+          cd app
+          yarn build
 
       - name: Build Electron app
         env:

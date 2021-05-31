@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package daemon_api;
+
+service Daemon {
+  rpc GetStatus (StatusRequest) returns (StatusResponse);
+  rpc StartConnectTunnel (StartConnectTunnelRequest) returns (StartConnectTunnelResponse);
+  rpc FinishConnectTunnel (FinishConnectTunnelRequest) returns (FinishConnectTunnelResponse);
+  rpc DisconnectTunnel (DisconnectTunnelRequest) returns (DisconnectTunnelResponse);
+}
+
+message TunnelInfo {
+  string endpoint = 1;
+}
+
+enum TunnelStatus {
+  DISCONNECTING = 0;
+  DISCONNECTED = 1;
+  CONNECTING = 2;
+  CONNECTED = 3;
+  ERROR = 4;
+}
+
+message DaemonStatus {
+  string current_tunnel = 1;
+  TunnelStatus status = 2;
+}
+
+message StatusRequest {
+}
+
+message StatusResponse {
+  map<string, TunnelInfo> config = 1;
+  DaemonStatus status = 2;
+}
+
+message StartConnectTunnelRequest {
+  string name = 1;
+}
+
+message StartConnectTunnelResponse {
+  string auth_url = 1;
+  string finish_url = 2;
+}
+
+message FinishConnectTunnelRequest {
+  string auth_code = 1;
+}
+
+message FinishConnectTunnelResponse {
+}
+
+message DisconnectTunnelRequest {
+  string name = 1;
+}
+
+message DisconnectTunnelResponse {
+}

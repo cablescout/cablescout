@@ -5,6 +5,9 @@ use crate::wireguard::Wireguard;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use anyhow::Result;
+use cablescout_api::server::{
+    FinishLoginRequest, FinishLoginResponse, StartLoginRequest, StartLoginResponse,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::IpAddr;
@@ -46,7 +49,7 @@ fn get_hostname(req: &web::HttpRequest) -> String {
 async fn start_login_api(
     req: web::HttpRequest,
     api_server: web::Data<Arc<ApiServer>>,
-    data: web::Json<cablescout_api::StartLoginRequest>,
+    data: web::Json<StartLoginRequest>,
 ) -> ApiResult {
     let nonce = random_string::<15>();
 
@@ -63,7 +66,7 @@ async fn start_login_api(
         .get_auth_url(&req.connection_info(), &login_token, &nonce)
         .await?;
 
-    Ok(HttpResponse::Ok().json(cablescout_api::StartLoginResponse {
+    Ok(HttpResponse::Ok().json(StartLoginResponse {
         auth_url,
         login_token,
     }))
@@ -73,7 +76,7 @@ async fn start_login_api(
 async fn finish_login_api(
     req: web::HttpRequest,
     api_server: web::Data<Arc<ApiServer>>,
-    data: web::Json<cablescout_api::FinishLoginRequest>,
+    data: web::Json<FinishLoginRequest>,
 ) -> ApiResult {
     let login_data: LoginData = api_server
         .token_generator
@@ -91,13 +94,11 @@ async fn finish_login_api(
         .clone()
         .start_session(&hostname, login_data.client_public_key, user_data)
         .await?;
-    Ok(
-        HttpResponse::Ok().json(cablescout_api::FinishLoginResponse {
-            session_ends_at,
-            interface,
-            peer,
-        }),
-    )
+    Ok(HttpResponse::Ok().json(FinishLoginResponse {
+        session_ends_at,
+        interface,
+        peer,
+    }))
 }
 
 pub(crate) struct ApiServer {
