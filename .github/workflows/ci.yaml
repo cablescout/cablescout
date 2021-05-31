@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    name: Run server/CLI tests
+    name: Run server tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -137,53 +137,6 @@ jobs:
           files: |
             ./target/release/cablescout-server-*
 
-  release-cli:
-    name: Release CLI
-    needs: tag
-    strategy:
-      matrix:
-        config:
-          - os: ubuntu-latest
-          - os: macos-latest
-    runs-on: ${{ matrix.config.os }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        id: rust-toolchain
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Download build cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}-
-          restore-keys: |
-            ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-
-
-      - name: Build
-        run: |
-          cargo build --release --bin=cablescout-cli
-          mv ./target/release/cablescout-cli{,-`echo $RUNNER_OS | tr '[:upper:]' '[:lower:]'`-x86_64}
-
-      - name: Upload assets
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          name: ${{ needs.tag.outputs.tag }}
-          draft: true
-          tag_name: ${{ needs.tag.outputs.tag }}
-          files: |
-            ./target/release/cablescout-cli-*
-
   release-app:
     name: Release App
     needs: tag
@@ -237,7 +190,6 @@ jobs:
     needs:
       - tag
       - release-server
-      - release-cli
       - release-app
     runs-on: ubuntu-latest
     steps:

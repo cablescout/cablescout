@@ -1,7 +1,6 @@
 [workspace]
 members = [
   "api",
-  "cli",
   "server",
   "wg-utils",
 ]
