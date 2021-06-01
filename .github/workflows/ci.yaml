@@ -137,15 +137,10 @@ jobs:
           files: |
             ./target/release/cablescout-server-*
 
-  release-app:
-    name: Release App
+  release-macos-app:
+    name: Release MacOS App
     needs: tag
-    strategy:
-      matrix:
-        config:
-          - os: macos-latest
-#          - os: windows-latest
-    runs-on: ${{ matrix.config.os }}
+    runs-on: macos-latest
     env:
       NODEJS_VERSION: 15
     steps:
@@ -176,21 +171,65 @@ jobs:
           cd app
           yarn version --no-git-tag-version --new-version ${{ needs.tag.outputs.tag }}
 
-      - name: Build/release Electron app
-        uses: samuelmeuli/action-electron-builder@v1
+      - name: Build Electron app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.MAC_CERTS }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+        run: |
+          cd app
+          ./node_modules/.bin/electron-forge publish
+
+  release-windows-app:
+    name: Release Windows App
+    needs: tag
+    runs-on: windows-latest
+    env:
+      NODEJS_VERSION: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Node.js, NPM and Yarn
+        id: setup-node
+        uses: actions/setup-node@v1
         with:
-          package_root: app
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release: ${{ startsWith(github.ref, 'refs/tags/v') }}
-          mac_certs: ${{ secrets.MAC_CERTS }}
-          mac_certs_password: ${{ secrets.MAC_CERTS_PASSWORD }}
+          node-version: ${{ env.NODEJS_VERSION }}
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            app/node_modules
+          key: ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-${{ hashFiles('app/yarn.lock') }}-
+          restore-keys: |
+            ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-
+
+      - name: Install node modules
+        run: |
+          cd app
+          yarn install
+
+      - name: Set version
+        run: |
+          cd app
+          yarn version --no-git-tag-version --new-version ${{ needs.tag.outputs.tag }}
+
+      - name: Build Electron app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          CSC_LINK: ${{ secrets.WINDOWS_CERTS }}
+#          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTS_PASSWORD }}
+        run: |
+          cd app
+          ./node_modules/.bin/electron-forge publish
 
   publish-release:
     name: Publish Release
     needs:
       - tag
       - release-server
-      - release-app
+      - release-macos-app
+      - release-windows-app
     runs-on: ubuntu-latest
     steps:
       - name: Publish release
