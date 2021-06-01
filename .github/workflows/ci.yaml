@@ -144,7 +144,7 @@ jobs:
       matrix:
         config:
           - os: macos-latest
-#          - os: windows-latest
+          - os: windows-latest
     runs-on: ${{ matrix.config.os }}
     env:
       NODEJS_VERSION: 15
@@ -176,14 +176,12 @@ jobs:
           cd app
           yarn version --no-git-tag-version --new-version ${{ needs.tag.outputs.tag }}
 
-      - name: Build/release Electron app
-        uses: samuelmeuli/action-electron-builder@v1
-        with:
-          package_root: app
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release: ${{ startsWith(github.ref, 'refs/tags/v') }}
-          mac_certs: ${{ secrets.MAC_CERTS }}
-          mac_certs_password: ${{ secrets.MAC_CERTS_PASSWORD }}
+      - name: Build Electron app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd app
+          yarn publish
 
   publish-release:
     name: Publish Release
