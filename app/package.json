@@ -12,30 +12,19 @@
     "build": "tsc && copyfiles --up 1 ./src/tray-icon/* ./dist/",
     "watch": "tsc -w",
     "lint": "eslint -c .eslintrc --ext .ts ./src",
-    "start": "yarn build && electron ./dist/main.js"
-  },
-  "build": {
-    "appId": "io.cablescout",
-    "productName": "Cablescout",
-    "files": [
-      "dist/**/*",
-      "package.json"
-    ],
-    "mac": {
-      "target": "pkg"
-    },
-    "win": {
-      "target": "msi"
-    },
-    "forceCodeSigning": true
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^6.0.0-beta.55",
+    "@electron-forge/maker-zip": "^6.0.0-beta.57",
+    "@electron-forge/publisher-github": "^6.0.0-beta.57",
     "@types/js-yaml": "^4.0.1",
     "@typescript-eslint/eslint-plugin": "^4.24.0",
     "@typescript-eslint/parser": "^4.24.0",
     "copyfiles": "^2.4.1",
     "electron": "^12.0.6",
-    "electron-builder": "^22.10.5",
     "eslint": "^7.26.0",
     "typescript": "^4.2.4"
   },
