@@ -9,23 +9,27 @@ use tokio::process::Command;
 
 async fn run_wg_quick<I, S>(args: I) -> Result<()>
 where
-    I: IntoIterator<Item = S>,
+    I: IntoIterator<Item = S> + std::fmt::Debug,
     S: AsRef<OsStr>,
 {
-    debug!("Running wg-quick");
+    debug!("Running wg-quick: args={:?}", args);
     let output = Command::new("wg-quick").args(args).output().await?;
     if !output.status.success() {
-        return Err(anyhow!(
+        let msg = format!(
             "Running \"wg-quick\" failed:\nstdout: {}\nstderr: {}",
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
-        ));
+        );
+        error!("Command failed: {}", msg);
+        return Err(anyhow!(msg));
     }
     debug!("Output: {}", String::from_utf8_lossy(&output.stdout));
     Ok(())
 }
 
 pub async fn wg_quick_up(name: &str, config: WireguardConfig) -> Result<()> {
+    info!("Bringing {} up", name);
+
     let config_dir = PathBuf::from("/etc/wireguard");
     create_dir_all(&config_dir).await?;
 
@@ -50,5 +54,6 @@ pub async fn wg_quick_up(name: &str, config: WireguardConfig) -> Result<()> {
 }
 
 pub async fn wg_quick_down(name: &str) -> Result<()> {
+    info!("Taking {} down", name);
     run_wg_quick(&["down", name]).await
 }
