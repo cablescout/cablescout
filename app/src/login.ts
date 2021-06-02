@@ -18,7 +18,7 @@ export function oauthLogin(login_url: string, finish_url: string): Promise<strin
 
     // If window is closed before we can complete this
     // promise successfully, reject it.
-    win.on('close', event => {
+    win.on('close', () => {
       log.warn('[login] Login window closed')
       reject(new Error('Login window closed'))
     })

@@ -1,7 +1,8 @@
 import * as path from 'path'
 import log from 'electron-log'
-import { app, dialog, Menu, Tray } from 'electron'
+import { app, Menu, Tray } from 'electron'
 import { TunnelStatus } from '../proto-gen/daemon_api/TunnelStatus'
+import { TunnelInfo } from '../proto-gen/daemon_api/TunnelInfo'
 import { getStatus, connectTunnel, disconnectTunnel } from './client'
 
 const TRAY_ICON_OFF = path.join(__dirname, 'tray-icon', 'Cablescout.Tray.Off.Template.png')
@@ -11,15 +12,15 @@ const TRAY_ICON_ERROR = path.join(__dirname, 'tray-icon', 'Cablescout.Tray.Error
 
 let tray: Tray | null = null
 
-export async function updateTray() {
+export async function updateTray(): Promise<void> {
     log.debug('[main] Updating tray icon')
     const status = await getStatus()
 
     const curr_tunnel = status.status?.currentTunnel
     log.debug(`[main] Current tunnel: ${curr_tunnel}`)
 
-    const tunnel_menu_items = Object.entries(status.config as object).map(
-        ([name, tunnel_config]) => (curr_tunnel && (curr_tunnel === name)) ? {
+    const tunnel_menu_items = Object.keys(status.config as Record<string, TunnelInfo>).map(
+        (name) => (curr_tunnel && (curr_tunnel === name)) ? {
             label: `Disconnect ${name}`,
             click: () => disconnectTunnel(),
         } : {
