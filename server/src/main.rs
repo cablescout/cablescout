@@ -44,6 +44,7 @@ async fn main() {
 
     env_logger::Builder::new()
         .filter(Some(env!("CARGO_CRATE_NAME")), default_level)
+        .filter(Some("wg_utils"), default_level)
         .filter(Some("actix_web"), default_level)
         .filter(None, log::LevelFilter::Info)
         .init();
