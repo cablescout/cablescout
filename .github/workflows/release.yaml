@@ -41,7 +41,7 @@ jobs:
       tag: ${{ steps.tag-with-v.outputs.new_tag }}
       tag_without_v: ${{ steps.tag-without-v.outputs.new_tag }}
 
-  release-server:
+  server:
     name: 📦 Release server
     needs: tag
     runs-on: ubuntu-latest
@@ -83,10 +83,15 @@ jobs:
           files: |
             ./target/release/cablescout-server-*
 
-  release-macos-app:
-    name: 📦 Release MacOS App
+  app:
+    name: 📦 Release App
     needs: tag
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        config:
+          - os: macos-latest
+          - os: windows-latest
+    runs-on: ${{ matrix.config.os }}
     env:
       NODEJS_VERSION: 15
     steps:
@@ -99,6 +104,13 @@ jobs:
         with:
           node-version: ${{ env.NODEJS_VERSION }}
 
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        id: rust-toolchain
+        with:
+          toolchain: stable
+          override: true
+
       - uses: actions/cache@v2
         with:
           path: |
@@ -106,6 +118,17 @@ jobs:
           key: ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-${{ hashFiles('app/yarn.lock') }}-
           restore-keys: |
             ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-
+
+      - name: Download build cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}-
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-
 
       - name: Install node modules
         run: |
@@ -122,12 +145,17 @@ jobs:
         with:
           version: '3.x'
 
-      - name: Build
+      - name: Build daemon
+        run: |
+          cargo build --release --bin=cablescout-daemon
+
+      - name: Build app
         run: |
           cd app
           yarn build
 
-      - name: Build Electron app
+      - name: Publish app
+        if: runner.os == 'Linux'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.MAC_CERTS }}
@@ -136,51 +164,8 @@ jobs:
           cd app
           ./node_modules/.bin/electron-forge publish
 
-  release-windows-app:
-    name: 📦 Release Windows App
-    needs: tag
-    runs-on: windows-latest
-    env:
-      NODEJS_VERSION: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install Node.js, NPM and Yarn
-        id: setup-node
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ env.NODEJS_VERSION }}
-
-      - uses: actions/cache@v2
-        with:
-          path: |
-            app/node_modules
-          key: ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-${{ hashFiles('app/yarn.lock') }}-
-          restore-keys: |
-            ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-
-
-      - name: Install node modules
-        run: |
-          cd app
-          yarn install
-
-      - name: Set version
-        run: |
-          cd app
-          yarn version --no-git-tag-version --new-version ${{ needs.tag.outputs.tag_without_v }}
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-
-      - name: Build
-        run: |
-          cd app
-          yarn build
-
-      - name: Build Electron app
+      - name: Publish app
+        if: runner.os == 'Windows'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #          CSC_LINK: ${{ secrets.WINDOWS_CERTS }}
@@ -189,13 +174,12 @@ jobs:
           cd app
           ./node_modules/.bin/electron-forge publish
 
-  publish-release:
+  publish:
     name: 🚀 Publish Release
     needs:
       - tag
-      - release-server
-      - release-macos-app
-      - release-windows-app
+      - server
+      - app
     runs-on: ubuntu-latest
     steps:
       - name: Publish release

@@ -2,6 +2,9 @@ module.exports = {
   packagerConfig: {
     name: 'Cablescout',
     out: './out',
+    extraResource: [
+      '../target/release/cablescout-daemon',
+    ],
   },
 
   makers: [
@@ -19,7 +22,6 @@ module.exports = {
           owner: 'cablescout',
           name: 'cablescout',
         },
-        prerelease: true,
       },
     },
   ],
