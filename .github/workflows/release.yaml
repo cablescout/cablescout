@@ -1,82 +1,17 @@
-name: Release version
+name: Release Version
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Run Tests
     branches:
       - main
+    types:
+      - completed
 
 jobs:
-  test:
-    name: Run server tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        id: rust-toolchain
-        with:
-          toolchain: stable
-          override: true
-
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}-
-          restore-keys: |
-            ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-
-
-      - name: Cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all --tests -- -D warnings
-
-      - name: Cargo test
-        run: cargo test --release
-
-  lint-app:
-    name: Lint app
-    runs-on: ubuntu-latest
-    env:
-      NODEJS_VERSION: 15
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Install Node.js, NPM and Yarn
-        id: setup-node
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ env.NODEJS_VERSION }}
-
-      - uses: actions/cache@v2
-        with:
-          path: |
-            app/node_modules
-          key: ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-${{ hashFiles('app/yarn.lock') }}-
-          restore-keys: |
-            ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-
-
-      - name: Install node modules
-        run: |
-          cd app
-          yarn install
-
-      - name: Run eslint
-        run: |
-          cd app
-          yarn lint
-
   tag:
-    name: Create a tag
-    needs:
-      - test
-      - lint-app
+    name: 🏷 Create a tag
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -107,7 +42,7 @@ jobs:
       tag_without_v: ${{ steps.tag-without-v.outputs.new_tag }}
 
   release-server:
-    name: Release server
+    name: 📦 Release server
     needs: tag
     runs-on: ubuntu-latest
     steps:
@@ -149,7 +84,7 @@ jobs:
             ./target/release/cablescout-server-*
 
   release-macos-app:
-    name: Release MacOS App
+    name: 📦 Release MacOS App
     needs: tag
     runs-on: macos-latest
     env:
@@ -202,7 +137,7 @@ jobs:
           ./node_modules/.bin/electron-forge publish
 
   release-windows-app:
-    name: Release Windows App
+    name: 📦 Release Windows App
     needs: tag
     runs-on: windows-latest
     env:
@@ -255,7 +190,7 @@ jobs:
           ./node_modules/.bin/electron-forge publish
 
   publish-release:
-    name: Publish Release
+    name: 🚀 Publish Release
     needs:
       - tag
       - release-server

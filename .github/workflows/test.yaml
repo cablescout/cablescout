@@ -1,0 +1,71 @@
+name: Run Tests
+
+on:
+  - push
+
+jobs:
+  test:
+    name: 🦀 Run Rust tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        id: rust-toolchain
+        with:
+          toolchain: stable
+          override: true
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}-
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.rustc_hash }}-
+
+      - name: Cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all --tests -- -D warnings
+
+      - name: Cargo test
+        run: cargo test --release
+
+  lint-app:
+    name: 🧹 Lint app
+    runs-on: ubuntu-latest
+    env:
+      NODEJS_VERSION: 15
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Node.js, NPM and Yarn
+        id: setup-node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.NODEJS_VERSION }}
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            app/node_modules
+          key: ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-${{ hashFiles('app/yarn.lock') }}-
+          restore-keys: |
+            ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-
+
+      - name: Install node modules
+        run: |
+          cd app
+          yarn install
+
+      - name: Run eslint
+        run: |
+          cd app
+          yarn lint
