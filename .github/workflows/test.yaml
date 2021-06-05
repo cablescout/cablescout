@@ -6,7 +6,12 @@ on:
 jobs:
   test:
     name: 🦀 Run Rust tests
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config:
+          - os: macos-latest
+          - os: windows-latest
+    runs-on: ${{ matrix.config.os }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -39,7 +44,12 @@ jobs:
 
   lint-app:
     name: 🧹 Lint app
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config:
+          - os: macos-latest
+          - os: windows-latest
+    runs-on: ${{ matrix.config.os }}
     env:
       NODEJS_VERSION: 15
     steps:
