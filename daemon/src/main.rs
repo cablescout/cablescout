@@ -35,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
         .filter(None, log::LevelFilter::Info)
         .init();
 
-    info!("Daemon starting");
+    info!("Daemon starting: {:?}", options);
 
     let config_dir = dirs::config_dir()
         .ok_or_else(|| anyhow!("Could not find config directory"))?

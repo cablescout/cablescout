@@ -110,6 +110,7 @@ impl Config {
             }
         }
 
+        info!("Found {} configured tunnels", tunnels.len());
         *writer = tunnels;
         Ok(())
     }
