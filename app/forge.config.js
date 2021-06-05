@@ -1,9 +1,13 @@
+const process = require('process')
+
+const DAEMON_BASENAME = (process.platform === 'win32') ? 'cablescout-daemon.exe' : 'cablescout-daemon'
+
 module.exports = {
   packagerConfig: {
     name: 'Cablescout',
     out: './out',
     extraResource: [
-      '../target/release/cablescout-daemon',
+      `../target/release/${DAEMON_BASENAME}`,
     ],
   },
 
