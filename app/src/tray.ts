@@ -19,7 +19,7 @@ export async function updateTray(): Promise<void> {
     const curr_tunnel = status.status?.currentTunnel
     log.debug(`[main] Current tunnel: ${curr_tunnel}`)
 
-    const tunnel_menu_items = Object.keys(status.config as Record<string, TunnelInfo>).map(
+    const tunnel_menu_items = status.config ? Object.keys(status.config as Record<string, TunnelInfo>).map(
         (name) => (curr_tunnel && (curr_tunnel === name)) ? {
             label: `Disconnect ${name}`,
             click: () => disconnectTunnel(),
@@ -27,7 +27,7 @@ export async function updateTray(): Promise<void> {
             label: `Connect ${name}`,
             click: () => connectTunnel(name),
         }
-    )
+    ) : []
 
     const menu = Menu.buildFromTemplate([
         ...tunnel_menu_items,

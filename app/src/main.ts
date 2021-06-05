@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import log from 'electron-log'
 import { getStatus, disconnectTunnel } from './client'
+import { ensureDaemon } from './daemon'
 import { updateTray } from './tray'
 
 async function appWillQuit(event: Event) {
@@ -28,6 +29,7 @@ async function main() {
     app.on('window-all-closed', (event: Event) => event.preventDefault())
     app.on('will-quit', appWillQuit)
 
+    await ensureDaemon()
     await updateTray()
 }
 
