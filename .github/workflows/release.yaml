@@ -155,7 +155,7 @@ jobs:
           yarn build
 
       - name: Publish app
-        if: runner.os == 'Linux'
+        if: runner.os == 'macOS'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.MAC_CERTS }}
