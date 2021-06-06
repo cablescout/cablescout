@@ -1,5 +1,6 @@
 import { app } from 'electron'
 import log from 'electron-log'
+import updateElectronApp from 'update-electron-app'
 import { getStatus, disconnectTunnel } from './client'
 import { ensureDaemon } from './daemon'
 import { updateTray } from './tray'
@@ -19,6 +20,11 @@ async function appWillQuit(event: Event) {
 
 async function main() {
     log.info('[main] =================== Starting app ===================')
+
+    updateElectronApp({
+        logger: log,
+    })
+
     await app.whenReady()
     log.debug('[main] App ready')
 
