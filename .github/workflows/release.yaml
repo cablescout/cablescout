@@ -203,24 +203,33 @@ jobs:
         run: |
           cargo build --release --bin=cablescout-daemon
 
-      - name: Publish app
+      - name: Add MacOS Certificates
         if: runner.os == 'macOS'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ secrets.MAC_CERTS }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+          MAC_CERTS: ${{ secrets.MAC_CERTS }}
+          MAC_CERTS_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
         run: |
-          cd app
-          ./node_modules/.bin/electron-forge publish
+          KEY_CHAIN=build.keychain
+          MACOS_CERT_P12_FILE=certificate.p12
+          echo $MAC_CERTS | base64 --decode > $MACOS_CERT_P12_FILE
+          security create-keychain -p actions $KEY_CHAIN
+          security default-keychain -s $KEY_CHAIN
+          security unlock-keychain -p actions $KEY_CHAIN
+          security import $MACOS_CERT_P12_FILE -k $KEY_CHAIN -P $MAC_CERTS_PASSWORD -T /usr/bin/codesign;
+          security set-key-partition-list -S apple-tool:,apple: -s -k actions $KEY_CHAIN
+          rm -rf *.p12
 
       - name: Publish app
-        if: runner.os == 'Windows'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          CSC_LINK: ${{ secrets.WINDOWS_CERTS }}
-#          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTS_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: |
           cd app
+          mkdir private_keys
+          echo <<EOF >./private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
+          ${{ secrets.APPLE_API_ISSUER }}
+          EOF
           ./node_modules/.bin/electron-forge publish
 
   publish:
