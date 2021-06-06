@@ -220,9 +220,7 @@ jobs:
           rm -rf *.p12
 
           mkdir ./app/private_keys
-          echo <<EOF >./app/private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
-          ${{ secrets.APPLE_API_ISSUER }}
-          EOF
+          echo ${{ secrets.APPLE_API_AUTHKEY_BASE64 }} | base64 -d >./app/private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
 
       - name: Publish app
         env:
