@@ -134,22 +134,26 @@ export async function connectTunnel(name: string): Promise<void> {
 
 export async function disconnectTunnel(): Promise<DisconnectTunnelResponse> {
     const client = await getClient()
-    return await new Promise((resolve, reject) => {
-        log.debug('[grpc] Sending DisconnectTunnelRequest')
-        client.disconnectTunnel(
-            {} as DisconnectTunnelRequest,
-            (error?: grpc.ServiceError, response?: DisconnectTunnelResponse) => {
-                if (error) {
-                    reject(error)
-                    return
+    try {
+        return await new Promise((resolve, reject) => {
+            log.debug('[grpc] Sending DisconnectTunnelRequest')
+            client.disconnectTunnel(
+                {} as DisconnectTunnelRequest,
+                (error?: grpc.ServiceError, response?: DisconnectTunnelResponse) => {
+                    if (error) {
+                        reject(error)
+                        return
+                    }
+                    if (response) {
+                        log.debug(`[grpc] Got DisconnectTunnelResponse: ${JSON.stringify(response)}`)
+                        resolve(response)
+                    } else {
+                        reject(new Error('disconnectTunnel returned empty response'))
+                    }
                 }
-                if (response) {
-                    log.debug(`[grpc] Got DisconnectTunnelResponse: ${JSON.stringify(response)}`)
-                    resolve(response)
-                } else {
-                    reject(new Error('disconnectTunnel returned empty response'))
-                }
-            }
-        )
-    })
+            )
+        })
+    } finally {
+        await updateTray()
+    }
 }
