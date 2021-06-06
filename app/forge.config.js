@@ -3,13 +3,12 @@ const process = require('process')
 const BUNDLE_ID = 'io.cablescout'
 const DAEMON_BASENAME = (process.platform === 'win32') ? 'cablescout-daemon.exe' : 'cablescout-daemon'
 
-//const { APPLE_API_KEY, APPLE_API_ISSUER } = process.env
-//const osxNotarize = (process.platform === 'darwin') ? {
-//  appBundleId: BUNDLE_ID,
-//  appleApiKey: APPLE_API_KEY,
-//  appleApiIssuer: APPLE_API_ISSUER,
-//} : undefined
-const osxNotarize = undefined
+const { APPLE_API_KEY, APPLE_API_ISSUER } = process.env
+const osxNotarize = (process.platform === 'darwin') ? {
+  appBundleId: BUNDLE_ID,
+  appleApiKey: APPLE_API_KEY,
+  appleApiIssuer: APPLE_API_ISSUER,
+} : undefined
 
 module.exports = {
   packagerConfig: {

@@ -219,10 +219,8 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k actions $KEY_CHAIN
           rm -rf *.p12
 
-          mkdir ./app/private_keys
-          echo <<EOF >./app/private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
-          ${{ secrets.APPLE_API_ISSUER }}
-          EOF
+          mkdir -p ~/private_keys
+          echo ${{ secrets.APPLE_API_AUTHKEY_BASE64 }} | base64 -d > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
 
       - name: Publish app
         env:
