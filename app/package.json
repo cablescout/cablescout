@@ -9,9 +9,9 @@
   },
   "main": "./dist/src/main.js",
   "scripts": {
-    "copy:proto": "copyfiles --up 3 ../api/proto/* ./proto/ && copyfiles --up 2 ../api/proto/* ./dist/",
-    "build:proto": "yarn copy:proto && proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=proto-gen/ ./proto/*",
-    "build:icons": "copyfiles --up 1 ./src/tray-icon/* ./dist/src/",
+    "copy:proto": "copyfiles --up 3 \"../api/proto/**/*\" ./proto/ && copyfiles --up 2 \"../api/proto/**/*\" ./dist/",
+    "build:proto": "yarn copy:proto && globstar -- proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=proto-gen/ \"./proto/**/*\"",
+    "build:icons": "copyfiles --up 1 \"./src/tray-icon/**/*\" ./dist/src/",
     "build": "yarn build:proto && tsc && yarn build:icons",
     "watch": "yarn build:proto && tsc -w",
     "lint": "eslint -c .eslintrc --ext .ts ./src",
@@ -29,6 +29,7 @@
     "copyfiles": "^2.4.1",
     "electron": "^12.0.6",
     "eslint": "^7.26.0",
+    "globstar": "^1.0.0",
     "ts-protoc-gen": "^0.15.0",
     "typescript": "^4.2.4"
   },
