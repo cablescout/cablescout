@@ -75,6 +75,11 @@ jobs:
           cd app
           yarn install
 
+      - name: Build app
+        run: |
+          cd app
+          yarn build
+
       - name: Run eslint
         run: |
           cd app
