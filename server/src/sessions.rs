@@ -125,7 +125,7 @@ impl SessionManager {
         let notify = self.clone().get_notify();
 
         loop {
-            let timeout = time::sleep(match self.clone().next_expiring_session().await {
+            let until = match self.clone().next_expiring_session().await {
                 None => Duration::from_secs(10000000000),
                 Some(datetime) => {
                     let duration_until = datetime - Utc::now();
@@ -133,8 +133,10 @@ impl SessionManager {
                         .to_std()
                         .unwrap_or_else(|_| Duration::from_nanos(0))
                 }
-            });
+            };
+            info!("Next session is set to expire in {:?}", until);
 
+            let timeout = time::sleep(until);
             select! {
                 _ = notify.notified() => {
                     // Restart loop to calculate the next session to expire
