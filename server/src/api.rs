@@ -13,6 +13,7 @@ use serde_json::json;
 use std::net::IpAddr;
 use std::sync::Arc;
 use structopt::StructOpt;
+use uuid::Uuid;
 
 #[derive(Debug, StructOpt)]
 pub struct ApiSettings {
@@ -27,6 +28,7 @@ pub struct ApiSettings {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct LoginData {
+    device_id: Uuid,
     client_public_key: String,
     nonce: String,
 }
@@ -56,6 +58,7 @@ async fn start_login_api(
     let login_token = api_server
         .token_generator
         .generate(LoginData {
+            device_id: data.device_id,
             client_public_key: data.client_public_key.clone(),
             nonce: nonce.clone(),
         })
@@ -92,7 +95,12 @@ async fn finish_login_api(
     let (interface, peer, session_ends_at) = api_server
         .wireguard
         .clone()
-        .start_session(&hostname, login_data.client_public_key, user_data)
+        .start_session(
+            &hostname,
+            login_data.device_id,
+            login_data.client_public_key,
+            user_data,
+        )
         .await?;
     Ok(HttpResponse::Ok().json(FinishLoginResponse {
         session_ends_at,

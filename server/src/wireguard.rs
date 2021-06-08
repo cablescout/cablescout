@@ -7,6 +7,7 @@ use log::*;
 use std::net::IpAddr;
 use std::sync::Arc;
 use structopt::StructOpt;
+use uuid::Uuid;
 use wg_utils::{
     wg_quick_up, FullWireguardInterface, WgKeyPair, WireguardConfig, WireguardInterface,
     WireguardInterfaceScripts, WireguardPeer,
@@ -87,12 +88,13 @@ impl Wireguard {
     pub(crate) async fn start_session(
         self: Arc<Self>,
         hostname: &str,
+        device_id: Uuid,
         client_public_key: String,
         user_data: UserData,
     ) -> Result<(WireguardInterface, WireguardPeer, DateTime<Utc>)> {
         let session = self
             .session_manager
-            .create(client_public_key, user_data)
+            .create(device_id, client_public_key, user_data)
             .await?;
 
         let interface = WireguardInterface {

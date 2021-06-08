@@ -3,6 +3,7 @@ use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use log::*;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -10,6 +11,7 @@ use std::time::Duration;
 use tokio::select;
 use tokio::sync::{Notify, RwLock};
 use tokio::time;
+use uuid::Uuid;
 use wg_utils::WireguardPeer;
 
 pub fn ip_address_as_ip_network(ip: IpAddr) -> Result<IpNetwork, IpNetworkError> {
@@ -26,6 +28,7 @@ pub fn ip_address_as_ip_network(ip: IpAddr) -> Result<IpNetwork, IpNetworkError>
 pub(crate) struct Session {
     pub(crate) ends_at: DateTime<Utc>,
     pub(crate) user_data: UserData,
+    pub(crate) device_id: Uuid,
     pub(crate) client_public_key: String,
     pub(crate) client_address: IpAddr,
 }
@@ -46,7 +49,7 @@ impl TryFrom<&Session> for WireguardPeer {
 pub(crate) struct SessionManager {
     client_network: IpNetwork,
     session_duration: chrono::Duration,
-    sessions: RwLock<Vec<Session>>,
+    sessions: RwLock<HashMap<Uuid, Session>>,
     notify: Arc<Notify>,
 }
 
@@ -76,32 +79,54 @@ impl SessionManager {
             .expect("Client network is too small")
     }
 
-    pub async fn create(&self, client_public_key: String, user_data: UserData) -> Result<Session> {
+    pub async fn create(
+        &self,
+        device_id: Uuid,
+        client_public_key: String,
+        user_data: UserData,
+    ) -> Result<Session> {
         let mut sessions = self.sessions.write().await;
 
         let ends_at = Utc::now()
             .checked_add_signed(self.session_duration)
             .ok_or_else(|| anyhow!("Overflow while calculating session end time"))?;
 
-        let server_addresses = [self.client_network.network(), self.server_address()];
-        let mut addresses_in_use = itertools::sorted(itertools::chain(
-            &server_addresses,
-            sessions.iter().map(|session| &session.client_address),
-        ));
-        let client_address = self
-            .client_network
-            .iter()
-            .find(|ip| Some(ip) != addresses_in_use.next())
-            .ok_or_else(|| anyhow!("Out of client addresses"))?;
+        let session = if let Some(session) = sessions.get_mut(&device_id) {
+            info!(
+                "Updating existing session of device {} to end at {}",
+                device_id, ends_at
+            );
+            session.ends_at = ends_at;
+            session.client_public_key = client_public_key;
+            session.clone()
+        } else {
+            info!(
+                "Creating new session for device {}, ends at {}",
+                device_id, ends_at
+            );
+            let server_addresses = [self.client_network.network(), self.server_address()];
+            let mut addresses_in_use = itertools::sorted(itertools::chain(
+                &server_addresses,
+                sessions.values().map(|session| &session.client_address),
+            ));
+            let client_address = self
+                .client_network
+                .iter()
+                .find(|ip| Some(ip) != addresses_in_use.next())
+                .ok_or_else(|| anyhow!("Out of client addresses"))?;
 
-        let session = Session {
-            ends_at,
-            user_data,
-            client_public_key,
-            client_address,
+            let session = Session {
+                ends_at,
+                user_data,
+                device_id,
+                client_public_key,
+                client_address,
+            };
+
+            sessions.insert(device_id, session.clone());
+            session
         };
 
-        sessions.push(session.clone());
         self.notify.notify_waiters();
         Ok(session)
     }
@@ -111,14 +136,14 @@ impl SessionManager {
             .sessions
             .read()
             .await
-            .iter()
+            .values()
             .map(WireguardPeer::try_from)
             .collect::<Result<_>>()?)
     }
 
     async fn next_expiring_session(self: Arc<Self>) -> Option<DateTime<Utc>> {
         let sessions = self.sessions.read().await;
-        sessions.iter().map(|session| session.ends_at).max()
+        sessions.values().map(|session| session.ends_at).max()
     }
 
     async fn expire_old_sessions(self: Arc<Self>) {
@@ -148,7 +173,7 @@ impl SessionManager {
                     let mut sessions = self.sessions.write().await;
                     let len_before = sessions.len();
                     let now = Utc::now();
-                    sessions.retain(|session| session.ends_at >= now);
+                    sessions.retain(|_, session| session.ends_at >= now);
                     info!("Removed {} sessions", sessions.len() - len_before);
                 }
             }

@@ -610,6 +610,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
+ "uuid",
  "wg-utils",
 ]
 
