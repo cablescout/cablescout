@@ -17,7 +17,7 @@ const CONFIG_SUFFIX: &str = ".tunnel.json";
 
 pub type ConfigTunnels = HashMap<String, TunnelConfig>;
 
-pub struct Config {
+pub struct DaemonConfig {
     path: PathBuf,
     inner: RwLock<Inner>,
 }
@@ -71,7 +71,7 @@ impl Inner {
     }
 }
 
-impl Config {
+impl DaemonConfig {
     pub async fn new(path: PathBuf) -> Result<Arc<Self>> {
         let inner = RwLock::new(Inner::new(&path).await?);
         let self_ = Arc::new(Self { path, inner });

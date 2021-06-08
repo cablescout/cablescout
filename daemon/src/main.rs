@@ -5,7 +5,7 @@ mod tunnel;
 
 use anyhow::anyhow;
 use async_std::fs::create_dir_all;
-use config::Config;
+use config::DaemonConfig;
 use log::*;
 use server::Server;
 use structopt::StructOpt;
@@ -44,9 +44,9 @@ async fn main() -> anyhow::Result<()> {
     debug!("Creating {:?}", config_dir);
     create_dir_all(config_dir.clone()).await?;
 
-    let config = Config::new(config_dir).await?;
+    let daemon_config = DaemonConfig::new(config_dir).await?;
 
-    Server::new(options.port, config).run().await?;
+    Server::new(options.port, daemon_config).run().await?;
 
     Ok(())
 }

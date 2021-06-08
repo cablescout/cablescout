@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::DaemonConfig;
 use crate::tunnel::Tunnel;
 use cablescout_api::daemon as daemon_api;
 use log::*;
@@ -9,15 +9,15 @@ use tonic::{Request, Response, Status};
 
 pub struct Server {
     port: u16,
-    config: Arc<Config>,
+    daemon_config: Arc<DaemonConfig>,
     tunnel: RwLock<Option<Tunnel>>,
 }
 
 impl Server {
-    pub fn new(port: u16, config: Arc<Config>) -> Self {
+    pub fn new(port: u16, daemon_config: Arc<DaemonConfig>) -> Self {
         Self {
             port,
-            config,
+            daemon_config,
             tunnel: Default::default(),
         }
     }
@@ -41,7 +41,7 @@ impl daemon_api::daemon_server::Daemon for Server {
         info!("Handling get_status");
         let tunnel = self.tunnel.read().await;
         Ok(Response::new(daemon_api::StatusResponse {
-            config: self.config.get_tunnels_info().await,
+            config: self.daemon_config.get_tunnels_info().await,
             status: tunnel.as_ref().map(|tunnel| daemon_api::DaemonStatus {
                 current_tunnel: tunnel.name(),
                 status: tunnel.status().into(),
@@ -60,7 +60,7 @@ impl daemon_api::daemon_server::Daemon for Server {
             return Err(Status::failed_precondition("Already connected"));
         }
 
-        let tunnel_config = match self.config.find(&req.name).await {
+        let tunnel_config = match self.daemon_config.find(&req.name).await {
             None => return Err(Status::not_found("Unknown tunnel")),
             Some(tunnel_config) => tunnel_config,
         };
