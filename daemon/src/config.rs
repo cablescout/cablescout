@@ -6,7 +6,7 @@ use log::*;
 use notify::{watcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
@@ -17,34 +17,83 @@ const CONFIG_SUFFIX: &str = ".tunnel.json";
 
 pub type ConfigTunnels = HashMap<String, TunnelConfig>;
 
-#[derive(Debug)]
 pub struct Config {
     path: PathBuf,
-    tunnels: RwLock<ConfigTunnels>,
+    inner: RwLock<Inner>,
 }
 
-impl Config {
-    pub fn new(path: PathBuf) -> Arc<Self> {
-        Arc::new(Self {
-            path,
-            tunnels: Default::default(),
+struct Inner {
+    tunnels: ConfigTunnels,
+}
+
+impl Inner {
+    async fn new(path: &Path) -> Result<Self> {
+        Ok(Self {
+            tunnels: Self::read_tunnels(path).await?,
         })
     }
 
+    async fn read_tunnels(path: &Path) -> Result<ConfigTunnels> {
+        info!(
+            "Reading tunnels from {}",
+            path.to_str().unwrap_or("ERROR PARSING PATH")
+        );
+
+        let mut entries = fs::read_dir(path).await?;
+        let mut tunnels: ConfigTunnels = Default::default();
+
+        while let Some(res) = entries.next().await {
+            let entry = res?;
+            let filename = entry.file_name();
+            let filename = filename.to_string_lossy();
+            if !entry.file_type().await?.is_file() {
+                debug!("Skipping {} (not a file)", filename);
+                continue;
+            }
+            if let Some(name) = filename.strip_suffix(CONFIG_SUFFIX) {
+                let raw = fs::read(entry.path()).await?;
+                let tunnel_config: TunnelConfig = match serde_json::from_slice(&raw) {
+                    Ok(tunnel_config) => tunnel_config,
+                    Err(err) => {
+                        error!("Could not parse {:?}: {}", filename, err);
+                        continue;
+                    }
+                };
+                info!("Found tunnel {}: {:#?}", name, tunnel_config);
+                tunnels.insert(name.to_owned(), tunnel_config);
+            } else {
+                debug!("Skipping {} (suffix doesn't match)", filename);
+            }
+        }
+
+        info!("Found {} configured tunnels", tunnels.len());
+        Ok(tunnels)
+    }
+}
+
+impl Config {
+    pub async fn new(path: PathBuf) -> Result<Arc<Self>> {
+        let inner = RwLock::new(Inner::new(&path).await?);
+        let self_ = Arc::new(Self { path, inner });
+        self_.watch();
+        Ok(self_)
+    }
+
     pub async fn get_tunnels_info(self: &Arc<Self>) -> HashMap<String, TunnelInfo> {
-        self.tunnels
+        self.inner
             .read()
             .await
+            .tunnels
             .iter()
             .map(|(key, value)| (key.to_owned(), value.into()))
             .collect()
     }
 
     pub async fn find(self: &Arc<Self>, name: &str) -> Option<TunnelConfig> {
-        self.tunnels.read().await.get(name).cloned()
+        self.inner.read().await.tunnels.get(name).cloned()
     }
 
-    pub fn watch(self: &Arc<Self>) {
+    fn watch(self: &Arc<Self>) {
         debug!("Watching for changes in {:?}", self.path);
 
         let (refresh_tx, mut refresh_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -76,42 +125,8 @@ impl Config {
     }
 
     async fn refresh(self: Arc<Self>) -> Result<()> {
-        let mut writer = self.tunnels.write().await;
-
-        info!(
-            "Refreshing config from {}",
-            self.path.to_str().unwrap_or("ERROR PARSING PATH")
-        );
-
-        let mut entries = fs::read_dir(self.path.clone()).await?;
-        let mut tunnels: ConfigTunnels = Default::default();
-
-        while let Some(res) = entries.next().await {
-            let entry = res?;
-            let filename = entry.file_name();
-            let filename = filename.to_string_lossy();
-            if !entry.file_type().await?.is_file() {
-                debug!("Skipping {} (not a file)", filename);
-                continue;
-            }
-            if let Some(name) = filename.strip_suffix(CONFIG_SUFFIX) {
-                let raw = fs::read(entry.path()).await?;
-                let tunnel_config: TunnelConfig = match serde_json::from_slice(&raw) {
-                    Ok(tunnel_config) => tunnel_config,
-                    Err(err) => {
-                        error!("Could not parse {:?}: {}", filename, err);
-                        continue;
-                    }
-                };
-                info!("Found tunnel {}: {:#?}", name, tunnel_config);
-                tunnels.insert(name.to_owned(), tunnel_config);
-            } else {
-                debug!("Skipping {} (suffix doesn't match)", filename);
-            }
-        }
-
-        info!("Found {} configured tunnels", tunnels.len());
-        *writer = tunnels;
+        let mut writer = self.inner.write().await;
+        *writer = Inner::new(&self.path).await?;
         Ok(())
     }
 }

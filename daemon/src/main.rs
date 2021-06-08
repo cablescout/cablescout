@@ -44,8 +44,7 @@ async fn main() -> anyhow::Result<()> {
     debug!("Creating {:?}", config_dir);
     create_dir_all(config_dir.clone()).await?;
 
-    let config = Config::new(config_dir);
-    config.watch();
+    let config = Config::new(config_dir).await?;
 
     Server::new(options.port, config).run().await?;
 
