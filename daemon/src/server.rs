@@ -70,7 +70,7 @@ impl daemon_api::daemon_server::Daemon for Server {
             .map_err(|e| Status::internal(e.to_string()))?
             .to_string();
 
-        let mut tunnel = Tunnel::new(req.name, tunnel_config);
+        let mut tunnel = Tunnel::new(req.name, self.daemon_config.clone(), tunnel_config);
         match tunnel.start_connect().await {
             Ok(auth_url) => {
                 *writer = Some(tunnel);

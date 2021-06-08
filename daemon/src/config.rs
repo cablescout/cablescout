@@ -12,6 +12,7 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::task;
 use url::Url;
+use uuid::Uuid;
 
 const CONFIG_SUFFIX: &str = ".tunnel.json";
 
@@ -23,14 +24,33 @@ pub struct DaemonConfig {
 }
 
 struct Inner {
+    device_id: Uuid,
     tunnels: ConfigTunnels,
 }
 
 impl Inner {
     async fn new(path: &Path) -> Result<Self> {
-        Ok(Self {
-            tunnels: Self::read_tunnels(path).await?,
-        })
+        let device_id = Self::find_device_id(path).await?;
+        let tunnels = Self::read_tunnels(path).await?;
+        Ok(Self { device_id, tunnels })
+    }
+
+    async fn find_device_id(path: &Path) -> Result<Uuid> {
+        let path = path.join("device_id.txt");
+        debug!("Reading device ID from {:?}", path);
+        let device_id = match fs::read_to_string(&path).await {
+            Ok(s) => Uuid::parse_str(&s)?,
+            Err(err) => {
+                if err.kind() != std::io::ErrorKind::NotFound {
+                    return Err(err.into());
+                }
+                let device_id = Uuid::new_v4();
+                fs::write(path, device_id.to_string()).await?;
+                device_id
+            }
+        };
+        info!("Device ID is {}", device_id);
+        Ok(device_id)
     }
 
     async fn read_tunnels(path: &Path) -> Result<ConfigTunnels> {
@@ -77,6 +97,10 @@ impl DaemonConfig {
         let self_ = Arc::new(Self { path, inner });
         self_.watch();
         Ok(self_)
+    }
+
+    pub async fn get_device_id(self: &Arc<Self>) -> Uuid {
+        self.inner.read().await.device_id
     }
 
     pub async fn get_tunnels_info(self: &Arc<Self>) -> HashMap<String, TunnelInfo> {

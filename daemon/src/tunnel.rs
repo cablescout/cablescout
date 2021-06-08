@@ -1,4 +1,4 @@
-use crate::config::TunnelConfig;
+use crate::config::{DaemonConfig, TunnelConfig};
 use crate::http::http_post;
 use anyhow::Result;
 use cablescout_api::daemon::TunnelStatus;
@@ -6,12 +6,14 @@ use cablescout_api::server::{
     FinishLoginRequest, FinishLoginResponse, StartLoginRequest, StartLoginResponse,
 };
 use log::*;
+use std::sync::Arc;
 use url::Url;
 use wg_utils::{wg_quick_down, wg_quick_up, FullWireguardInterface, WgKeyPair, WireguardConfig};
 
 pub struct Tunnel {
     name: String,
-    config: TunnelConfig,
+    daemon_config: Arc<DaemonConfig>,
+    tunnel_config: TunnelConfig,
     status: TunnelStatus,
     key_pair: Option<WgKeyPair>,
     login_token: Option<String>,
@@ -19,10 +21,15 @@ pub struct Tunnel {
 }
 
 impl Tunnel {
-    pub fn new(name: String, config: TunnelConfig) -> Self {
+    pub fn new(
+        name: String,
+        daemon_config: Arc<DaemonConfig>,
+        tunnel_config: TunnelConfig,
+    ) -> Self {
         Self {
             name,
-            config,
+            daemon_config,
+            tunnel_config,
             status: TunnelStatus::Disconnected,
             key_pair: None,
             login_token: None,
@@ -42,10 +49,12 @@ impl Tunnel {
         let key_pair = WgKeyPair::new().await?;
 
         let req = StartLoginRequest {
+            device_id: self.daemon_config.get_device_id().await,
             client_public_key: key_pair.public_key.clone(),
         };
         debug!("Sending login start request: {:#?}", req);
-        let start_res: StartLoginResponse = http_post(self.config.start_api_url()?, req).await?;
+        let start_res: StartLoginResponse =
+            http_post(self.tunnel_config.start_api_url()?, req).await?;
         debug!("Got login start response: {:#?}", start_res);
 
         Ok((key_pair, start_res))
@@ -62,15 +71,16 @@ impl Tunnel {
             auth_code,
         };
         debug!("Sending login finish request: {:#?}", req);
-        let finish_res: FinishLoginResponse = http_post(self.config.finish_api_url()?, req).await?;
+        let finish_res: FinishLoginResponse =
+            http_post(self.tunnel_config.finish_api_url()?, req).await?;
         debug!("Got login finish response: {:#?}", finish_res);
 
-        let config = WireguardConfig::new(
+        let wg_config = WireguardConfig::new(
             FullWireguardInterface::new(&key_pair, finish_res.interface),
             vec![finish_res.peer],
         );
 
-        wg_quick_up(&self.name, config).await?;
+        wg_quick_up(&self.name, wg_config).await?;
 
         Ok(())
     }

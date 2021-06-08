@@ -1,10 +1,12 @@
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use url::Url;
+use uuid::Uuid;
 use wg_utils::{WireguardInterface, WireguardPeer};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StartLoginRequest {
+    pub device_id: Uuid,
     pub client_public_key: String,
 }
 
