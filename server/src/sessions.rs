@@ -191,3 +191,58 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test_env_log::test;
+
+    #[derive(Clone)]
+    struct TestUserData {}
+
+    type TestSessionManager = Arc<SessionManager<TestUserData>>;
+
+    fn create_session_manager() -> Result<TestSessionManager> {
+        let client_network: IpNetwork = "192.168.1.0/24".parse()?;
+        let manager = SessionManager::new(client_network, chrono::Duration::minutes(10));
+        manager.clone().run();
+        Ok(manager)
+    }
+
+    #[test(tokio::test)]
+    async fn test_create_session() -> Result<()> {
+        let manager = create_session_manager()?;
+        assert_eq!(manager.server_address(), "192.168.1.1".parse::<IpAddr>()?);
+
+        let device_id1 = Uuid::new_v4();
+        let session1 = manager
+            .create(device_id1, "key1".to_owned(), TestUserData {})
+            .await?;
+        assert_eq!(session1.client_address, "192.168.1.2".parse::<IpAddr>()?);
+
+        let device_id2 = Uuid::new_v4();
+        let session2 = manager
+            .create(device_id2, "key2".to_owned(), TestUserData {})
+            .await?;
+        assert_eq!(session2.client_address, "192.168.1.3".parse::<IpAddr>()?);
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_session_reuse() -> Result<()> {
+        let manager = create_session_manager()?;
+        assert_eq!(manager.server_address(), "192.168.1.1".parse::<IpAddr>()?);
+
+        let device_id = Uuid::new_v4();
+        let session1 = manager
+            .create(device_id, "key1".to_owned(), TestUserData {})
+            .await?;
+        assert_eq!(session1.client_address, "192.168.1.2".parse::<IpAddr>()?);
+
+        let session2 = manager
+            .create(device_id, "key2".to_owned(), TestUserData {})
+            .await?;
+        assert_eq!(session2.client_address, session1.client_address);
+        Ok(())
+    }
+}

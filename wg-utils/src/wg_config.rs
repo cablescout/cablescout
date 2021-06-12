@@ -60,7 +60,7 @@ impl FullWireguardInterface {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct WireguardPeer {
     pub public_key: String,
