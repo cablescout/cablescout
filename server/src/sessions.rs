@@ -1,4 +1,3 @@
-use crate::login::UserData;
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use ipnetwork::{IpNetwork, IpNetworkError};
@@ -25,18 +24,24 @@ pub fn ip_address_as_ip_network(ip: IpAddr) -> Result<IpNetwork, IpNetworkError>
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct Session {
+pub(crate) struct Session<U>
+where
+    U: Send,
+{
     pub(crate) ends_at: DateTime<Utc>,
-    pub(crate) user_data: UserData,
+    pub(crate) user_data: U,
     pub(crate) device_id: Uuid,
     pub(crate) client_public_key: String,
     pub(crate) client_address: IpAddr,
 }
 
-impl TryFrom<&Session> for WireguardPeer {
+impl<U> TryFrom<&Session<U>> for WireguardPeer
+where
+    U: Send,
+{
     type Error = anyhow::Error;
 
-    fn try_from(session: &Session) -> Result<Self, Self::Error> {
+    fn try_from(session: &Session<U>) -> Result<Self, Self::Error> {
         Ok(Self {
             public_key: session.client_public_key.clone(),
             allowed_ips: vec![ip_address_as_ip_network(session.client_address)?],
@@ -46,14 +51,20 @@ impl TryFrom<&Session> for WireguardPeer {
     }
 }
 
-pub(crate) struct SessionManager {
+pub(crate) struct SessionManager<U>
+where
+    U: Send,
+{
     client_network: IpNetwork,
     session_duration: chrono::Duration,
-    sessions: RwLock<HashMap<Uuid, Session>>,
+    sessions: RwLock<HashMap<Uuid, Session<U>>>,
     notify: Arc<Notify>,
 }
 
-impl SessionManager {
+impl<U> SessionManager<U>
+where
+    U: Send + Sync + Clone + 'static,
+{
     pub fn new(client_network: IpNetwork, session_duration: chrono::Duration) -> Arc<Self> {
         Arc::new(Self {
             client_network,
@@ -83,8 +94,8 @@ impl SessionManager {
         &self,
         device_id: Uuid,
         client_public_key: String,
-        user_data: UserData,
-    ) -> Result<Session> {
+        user_data: U,
+    ) -> Result<Session<U>> {
         let mut sessions = self.sessions.write().await;
 
         let ends_at = Utc::now()

@@ -64,7 +64,7 @@ pub(crate) struct WireguardSettings {
 
 pub(crate) struct Wireguard {
     settings: WireguardSettings,
-    session_manager: Arc<SessionManager>,
+    session_manager: Arc<SessionManager<UserData>>,
     key_pair: WgKeyPair,
 }
 
