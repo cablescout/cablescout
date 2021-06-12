@@ -21,17 +21,17 @@ enum TunnelStatus {
   ERROR = 4;
 }
 
-message DaemonStatus {
-  string current_tunnel = 1;
-  TunnelStatus status = 2;
-}
-
 message StatusRequest {
 }
 
+message CurrentTunnel {
+  string name = 1;
+  TunnelStatus status = 2;
+}
 message StatusResponse {
   map<string, TunnelInfo> config = 1;
-  DaemonStatus status = 2;
+  string tunnels_path = 2;
+  CurrentTunnel current_tunnel = 3;
 }
 
 message StartConnectTunnelRequest {

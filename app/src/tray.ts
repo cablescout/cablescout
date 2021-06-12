@@ -4,6 +4,7 @@ import { app, Menu, Tray } from 'electron'
 import { TunnelStatus } from '../proto-gen/daemon_api/TunnelStatus'
 import { TunnelInfo } from '../proto-gen/daemon_api/TunnelInfo'
 import { getStatus, connectTunnel, disconnectTunnel } from './client'
+import { addTunnel } from './add-tunnel'
 
 const TRAY_ICON_OFF = path.join(__dirname, 'tray-icon', 'Cablescout.Tray.Off.Template.png')
 const TRAY_ICON_PROGRESS = path.join(__dirname, 'tray-icon', 'Cablescout.Tray.Progress.Template.png')
@@ -16,11 +17,11 @@ export async function updateTray(): Promise<void> {
     log.debug('[main] Updating tray icon')
     const status = await getStatus()
 
-    const curr_tunnel = status.status?.currentTunnel
-    log.debug(`[main] Current tunnel: ${curr_tunnel}`)
+    const curr_tunnel = status.currentTunnel
+    log.debug(`[main] Current tunnel: ${curr_tunnel?.name}`)
 
     const tunnel_menu_items = status.config ? Object.keys(status.config as Record<string, TunnelInfo>).map(
-        (name) => (curr_tunnel && (curr_tunnel === name)) ? {
+        (name) => (curr_tunnel?.name === name) ? {
             label: `Disconnect ${name}`,
             click: () => disconnectTunnel(),
         } : {
@@ -33,7 +34,7 @@ export async function updateTray(): Promise<void> {
         ...tunnel_menu_items,
         {
             label: 'Add new tunnel...',
-            enabled: false,
+            click: addTunnel,
         },
         {
             type: 'separator',
@@ -60,7 +61,7 @@ export async function updateTray(): Promise<void> {
         //}
     }
 
-    switch (status.status?.status) {
+    switch (curr_tunnel?.status) {
         case TunnelStatus.CONNECTED:
             tray.setImage(TRAY_ICON_ON)
             break

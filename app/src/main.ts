@@ -8,12 +8,12 @@ import { updateTray } from './tray'
 async function appWillQuit(event: Event) {
     log.warn('[main] App about to quit')
     const status = await getStatus()
-    if (!status.status || !status.status.currentTunnel) {
+    if (!status.currentTunnel) {
         log.info('[main] No tunnel connected, quitting app')
         return
     }
     event.preventDefault()
-    log.info(`[main] Disconnecting ${status.status.currentTunnel} before quitting app`)
+    log.info(`[main] Disconnecting ${status.currentTunnel.name} before quitting app`)
     await disconnectTunnel()
     app.quit()
 }

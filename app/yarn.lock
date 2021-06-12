@@ -520,6 +520,13 @@
     "@types/node" "*"
     "@types/responselike" "*"
 
+"@types/electron-prompt@^1.6.0":
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/@types/electron-prompt/-/electron-prompt-1.6.0.tgz#30c2e33a338e6bdeda91892fb776331c879f5454"
+  integrity sha512-mCIUiLE+KG2KrBrU7ertAwN4e9WoPs9XGxl6xsD8O4IU9cqSdj6xJSTKA8kU3bcfV0MenkvwANouIe+awxGdBg==
+  dependencies:
+    electron latest
+
 "@types/glob@^7.1.1":
   version "7.1.3"
   resolved "https://registry.yarnpkg.com/@types/glob/-/glob-7.1.3.tgz#e6ba80f36b7daad2c685acd9266382e68985c183"
@@ -1326,6 +1333,13 @@ dir-glob@^3.0.1:
   dependencies:
     path-type "^4.0.0"
 
+doc-ready@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/doc-ready/-/doc-ready-1.0.4.tgz#37f5391969cff994303fdfef2e5d50357f8164d3"
+  integrity sha1-N/U5GWnP+ZQwP9/vLl1QNX+BZNM=
+  dependencies:
+    eventie "^1"
+
 doctrine@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/doctrine/-/doctrine-3.0.0.tgz#addebead72a6574db783639dc87a121773973961"
@@ -1399,6 +1413,13 @@ electron-packager@^15.0.0:
     semver "^7.1.3"
     yargs-parser "^20.0.0"
 
+electron-prompt@^1.6.2:
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/electron-prompt/-/electron-prompt-1.6.2.tgz#e26bd3d359120bd45ce2f9625bdc380deb7ee269"
+  integrity sha512-gC9ZpMopIgz1kW92J7UfsXarkLdPH2zhr77bnJFlDSduYjRlr9nEPm4ux1vyzJsO72AdOyvuPPIQB0j+gWsncQ==
+  dependencies:
+    doc-ready "^1.0.4"
+
 electron-rebuild@^2.3.2:
   version "2.3.5"
   resolved "https://registry.yarnpkg.com/electron-rebuild/-/electron-rebuild-2.3.5.tgz#10dc38d1ffe1515ba2eef8b8be8e973ad1e1d597"
@@ -1421,6 +1442,15 @@ electron@^12.0.6:
   version "12.0.10"
   resolved "https://registry.yarnpkg.com/electron/-/electron-12.0.10.tgz#d0879ff005a200d5b08dbfb3e5bbea744d38c71a"
   integrity sha512-qaNvFG4AgeuT3PkSljQ9MlY7hz87wIwJ5cmSZ1453IVsUd0BV7pcaLViSpR1bRSqxetDDWxCLtCp0N9RXeDZww==
+  dependencies:
+    "@electron/get" "^1.0.1"
+    "@types/node" "^14.6.2"
+    extract-zip "^1.0.3"
+
+electron@latest:
+  version "13.1.2"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-13.1.2.tgz#8c9abf9015766c9cbc16f10c99282d00d6ae1b90"
+  integrity sha512-aNT9t+LgdQaZ7FgN36pN7MjSEoj+EWc2T9yuOqBApbmR4HavGRadSz7u9N2Erw2ojdIXtei2RVIAvVm8mbDZ0g==
   dependencies:
     "@electron/get" "^1.0.1"
     "@types/node" "^14.6.2"
@@ -1601,6 +1631,11 @@ esutils@^2.0.2:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/esutils/-/esutils-2.0.3.tgz#74d2eb4de0b8da1293711910d50775b9b710ef64"
   integrity sha512-kVscqXk4OCp68SZ0dkgEKVi6/8ij300KBWTJq32P/dYeWTSwK41WyTxalN1eRmA5Z9UU/LX9D7FWSmV9SAYx6g==
+
+eventie@^1:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/eventie/-/eventie-1.0.6.tgz#d4ffc8b0c2b5e493c2aa1b22cbe918d3aee74437"
+  integrity sha1-1P/IsMK15JPCqhsiy+kY067nRDc=
 
 execa@^1.0.0:
   version "1.0.0"

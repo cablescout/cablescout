@@ -42,8 +42,9 @@ impl daemon_api::daemon_server::Daemon for Server {
         let tunnel = self.tunnel.read().await;
         Ok(Response::new(daemon_api::StatusResponse {
             config: self.daemon_config.get_tunnels_info().await,
-            status: tunnel.as_ref().map(|tunnel| daemon_api::DaemonStatus {
-                current_tunnel: tunnel.name(),
+            tunnels_path: self.daemon_config.path().to_string_lossy().to_string(),
+            current_tunnel: tunnel.as_ref().map(|tunnel| daemon_api::CurrentTunnel {
+                name: tunnel.name(),
                 status: tunnel.status().into(),
             }),
         }))

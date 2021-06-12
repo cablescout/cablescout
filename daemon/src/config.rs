@@ -99,6 +99,10 @@ impl DaemonConfig {
         Ok(self_)
     }
 
+    pub fn path(&self) -> PathBuf {
+        self.path.clone()
+    }
+
     pub async fn get_device_id(self: &Arc<Self>) -> Uuid {
         self.inner.read().await.device_id
     }
