@@ -154,7 +154,7 @@ impl ApiServer {
             App::new()
                 .wrap(Logger::default())
                 .app_data(json_config)
-                .data(self.clone())
+                .app_data(self.clone())
                 .service(finish_page)
                 .service(start_login_api)
                 .service(finish_login_api)

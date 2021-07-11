@@ -1,7 +1,5 @@
-use actix_web::body::Body;
-use actix_web::dev::BaseHttpResponseBuilder;
 use actix_web::http::StatusCode;
-use actix_web::{BaseHttpResponse, HttpResponse, ResponseError};
+use actix_web::{HttpResponse, ResponseError};
 use serde_json::json;
 
 #[derive(thiserror::Error, Debug)]
@@ -26,19 +24,10 @@ impl ResponseError for ApiError {
         }
     }
 
-    fn error_response(&self) -> BaseHttpResponse<Body> {
-        let body = match serde_json::to_string(&json!({
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::build(self.status_code()).json(json!({
             "message": self.to_string(),
-        })) {
-            Ok(body) => body,
-            Err(err) => {
-                log::error!("Failed formatting error to json ({}): {}", err, self);
-                "\"An error has occurred but could not be formatted to JSON\"".to_owned()
-            }
-        };
-        BaseHttpResponseBuilder::new(self.status_code())
-            .content_type(mime::APPLICATION_JSON)
-            .body(body)
+        }))
     }
 }
 
