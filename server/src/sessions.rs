@@ -74,6 +74,11 @@ where
         })
     }
 
+    #[cfg(test)]
+    pub fn session_duration(&self) -> chrono::Duration {
+        self.session_duration
+    }
+
     pub fn run(self: Arc<Self>) {
         tokio::spawn(self.expire_old_sessions());
     }
@@ -197,6 +202,20 @@ mod tests {
     use super::*;
     use test_env_log::test;
 
+    struct PausedTime;
+
+    impl PausedTime {
+        fn new() {
+            time::pause()
+        }
+    }
+
+    impl Drop for PausedTime {
+        fn drop(&mut self) {
+            time::resume()
+        }
+    }
+
     #[derive(Clone)]
     struct TestUserData {}
 
@@ -243,6 +262,24 @@ mod tests {
             .create(device_id, "key2".to_owned(), TestUserData {})
             .await?;
         assert_eq!(session2.client_address, session1.client_address);
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_session_expiry() -> Result<()> {
+        let manager = create_session_manager()?;
+
+        let device_id = Uuid::new_v4();
+        manager
+            .create(device_id, "key1".to_owned(), TestUserData {})
+            .await?;
+
+        let _paused_time = PausedTime::new();
+        time::advance(manager.session_duration().to_std()? + Duration::from_secs(1)).await;
+        tokio::task::yield_now().await;
+
+        assert_eq!(manager.get_peers().await?, vec![]);
+
         Ok(())
     }
 }
