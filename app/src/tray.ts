@@ -5,6 +5,7 @@ import { TunnelStatus } from '../proto-gen/daemon_api/TunnelStatus'
 import { TunnelInfo } from '../proto-gen/daemon_api/TunnelInfo'
 import { getStatus, connectTunnel, disconnectTunnel } from './client'
 import { addTunnel } from './add-tunnel'
+import { StatusResponse } from '../proto-gen/daemon_api/StatusResponse'
 
 const TRAY_ICON_OFF = path.join(__dirname, 'tray-icon', 'Cablescout.Tray.Off.Template.png')
 const TRAY_ICON_PROGRESS = path.join(__dirname, 'tray-icon', 'Cablescout.Tray.Progress.Template.png')
@@ -15,7 +16,29 @@ let tray: Tray | null = null
 
 export async function updateTray(): Promise<void> {
     log.debug('[main] Updating tray icon')
-    const status = await getStatus()
+    try {
+        const status = await getStatus()
+        updateTrayFromStatus(status)
+    } catch (error) {
+        updateTrayFromStatus({
+            currentTunnel: {
+                status: TunnelStatus.ERROR,
+            },
+        } as StatusResponse)
+        throw error
+    }
+}
+
+export function updateTrayFromStatus(status: StatusResponse): void {
+    if (!tray) {
+        tray = new Tray(TRAY_ICON_OFF)
+
+        // error TS2769: No overload matches this call.
+        // Argument of type '"click"' is not assignable to parameter of type '"right-click"'.
+        //if (process.platform === 'win32') {
+        //    tray.on('click', tray.popUpContextMenu)
+        //}
+    }
 
     const curr_tunnel = status.currentTunnel
     log.debug(`[main] Current tunnel: ${curr_tunnel?.name}`)
@@ -50,16 +73,6 @@ export async function updateTray(): Promise<void> {
             },
         },
     ])
-
-    if (!tray) {
-        tray = new Tray(TRAY_ICON_OFF)
-
-        // error TS2769: No overload matches this call.
-        // Argument of type '"click"' is not assignable to parameter of type '"right-click"'.
-        //if (process.platform === 'win32') {
-        //    tray.on('click', tray.popUpContextMenu)
-        //}
-    }
 
     switch (curr_tunnel?.status) {
         case TunnelStatus.CONNECTED:
