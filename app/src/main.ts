@@ -21,6 +21,10 @@ async function appWillQuit(event: Event) {
 async function main() {
     log.info('[main] =================== Starting app ===================')
 
+    if (require('electron-squirrel-startup')) {
+        app.quit()
+    }
+
     updateElectronApp({
         logger: log,
     })

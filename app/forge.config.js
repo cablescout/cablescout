@@ -30,7 +30,11 @@ module.exports = {
   makers: [
     {
       name: '@electron-forge/maker-zip',
-      platforms: ['darwin', 'win32'],
+      platforms: ['darwin'],
+    },
+    {
+      name: '@electron-forge/maker-squirrel',
+      platforms: ['win32'],
     },
   ],
 

@@ -2,6 +2,8 @@
   "name": "cablescout-app",
   "version": "1.0.0",
   "license": "AGPL-3.0",
+  "author": "Zohar Zilberman <popen2@gmail.com>",
+  "description": "An OpenID Connect wrapper for WireGuard",
   "repository": {
     "type": "git",
     "url": "https://github.com/cablescout/cablescout.git",
@@ -21,6 +23,7 @@
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.0.0-beta.55",
+    "@electron-forge/maker-squirrel": "^6.0.0-beta.57",
     "@electron-forge/maker-zip": "^6.0.0-beta.57",
     "@electron-forge/publisher-github": "^6.0.0-beta.57",
     "@types/electron-prompt": "^1.6.0",
@@ -40,6 +43,7 @@
     "axios": "^0.21.1",
     "electron-log": "^4.3.5",
     "electron-prompt": "^1.6.2",
+    "electron-squirrel-startup": "^1.0.0",
     "hasha": "^5.2.2",
     "js-yaml": "^4.1.0",
     "sudo-prompt": "^9.2.1",
