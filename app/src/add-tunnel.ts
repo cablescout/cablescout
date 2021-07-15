@@ -1,4 +1,5 @@
 import * as path from 'path'
+import * as process from 'process'
 import log from 'electron-log'
 import prompt from 'electron-prompt'
 import { getStatus } from './client'
@@ -50,6 +51,15 @@ async function createTunnelFile(endpoint: string): Promise<void> {
     }
 
     const tunnel_file = path.join(tunnels_path, `${name}.tunnel.json`)
-    await runAsRoot(`echo '${JSON.stringify(tunnel_info)}' > "${tunnel_file}"`)
+
+    switch (process.platform) {
+        case 'win32':
+            await runAsRoot(`echo ${JSON.stringify(tunnel_info)} > "${tunnel_file}"`)
+            break
+        default:
+            await runAsRoot(`echo '${JSON.stringify(tunnel_info)}' > "${tunnel_file}"`)
+            break
+    }
+
     await updateTray()
 }
