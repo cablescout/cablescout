@@ -10,14 +10,20 @@ const osxNotarize = (process.platform === 'darwin') ? {
   appleApiIssuer: APPLE_API_ISSUER,
 } : undefined
 
+const extraResource = [
+  `../target/release/${DAEMON_BASENAME}`,
+]
+
+if (process.platform === 'win32') {
+  extraResource.push('out/shawl.exe')
+}
+
 module.exports = {
   packagerConfig: {
     name: 'Cablescout',
     appBundleId: BUNDLE_ID,
     out: './out',
-    extraResource: [
-      `../target/release/${DAEMON_BASENAME}`,
-    ],
+    extraResource,
     osxSign: {
       "hardened-runtime": true,
       "entitlements": "entitlements.plist",
