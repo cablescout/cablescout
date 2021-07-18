@@ -83,62 +83,10 @@ jobs:
           files: |
             ./target/release/cablescout-server-*
 
-  build-app:
-    name: 🏗 Build App
-    needs: tag
-    runs-on: ubuntu-latest
-    env:
-      NODEJS_VERSION: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install Node.js, NPM and Yarn
-        id: setup-node
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ env.NODEJS_VERSION }}
-
-      - uses: actions/cache@v2
-        with:
-          path: |
-            app/node_modules
-          key: ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-${{ hashFiles('app/yarn.lock') }}-
-          restore-keys: |
-            ${{ runner.os }}-nodejs-${{ env.NODEJS_VERSION }}-
-
-      - name: Install node modules
-        run: |
-          cd app
-          yarn install
-
-      - name: Set version
-        run: |
-          cd app
-          yarn version --no-git-tag-version --new-version ${{ needs.tag.outputs.tag_without_v }}
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-
-      - name: Build app
-        run: |
-          cd app
-          yarn build
-
-      - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v2
-        with:
-          name: app-dist
-          path: app/dist
-          retention-days: 2
-
   release-app:
     name: 📦 Release App
     needs:
       - tag
-      - build-app
     strategy:
       matrix:
         config:
@@ -193,11 +141,15 @@ jobs:
           cd app
           yarn version --no-git-tag-version --new-version ${{ needs.tag.outputs.tag_without_v }}
 
-      - name: Download built app
-        uses: actions/download-artifact@v2
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
         with:
-          name: app-dist
-          path: app/dist
+          version: '3.x'
+
+      - name: Build app
+        run: |
+          cd app
+          yarn build
 
       - name: Build daemon
         run: |
