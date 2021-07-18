@@ -22,7 +22,7 @@ async function main() {
     log.info('[main] =================== Starting app ===================')
 
     if (require('electron-squirrel-startup')) {
-        app.quit()
+        return app.quit()
     }
 
     updateElectronApp({
