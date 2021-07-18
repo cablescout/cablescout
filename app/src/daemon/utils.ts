@@ -1,6 +1,9 @@
 import * as path from 'path'
+import * as process from 'process'
 import * as log from 'electron-log'
 import { stat } from 'fs/promises'
+
+const DAEMON_BASENAME = process.platform === 'win32' ? 'cablescout-daemon.exe' : 'cablescout-daemon'
 
 export async function getDaemonPath(): Promise<string> {
     let res: string
@@ -9,7 +12,7 @@ export async function getDaemonPath(): Promise<string> {
         log.debug(`[daemon] Using daemon path from env: ${CABLESCOUT_DAEMON_PATH}`)
         res = CABLESCOUT_DAEMON_PATH
     } else {
-        res = path.join(process.resourcesPath, 'cablescout-daemon')
+        res = path.join(process.resourcesPath, DAEMON_BASENAME)
         log.debug(`[daemon] Daemon path: ${CABLESCOUT_DAEMON_PATH}`)
     }
     try {
