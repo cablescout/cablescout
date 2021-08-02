@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import log from 'electron-log'
 import updateElectronApp from 'update-electron-app'
+import * as Sentry from "@sentry/electron"
 import { getStatus, disconnectTunnel } from './client'
 import { ensureDaemon } from './daemon'
 import { updateTray } from './tray'
@@ -44,4 +45,7 @@ async function main() {
 }
 
 log.catchErrors({ showDialog: true })
+
+Sentry.init({ dsn: "https://36d1ee68c620479d99c0268814e57f2b@o938888.ingest.sentry.io/5888657" })
+
 main()
