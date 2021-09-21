@@ -30,6 +30,7 @@ uuid = {version = "0.8.2", features = ["serde"]}
 wg-utils = {path = "../wg-utils"}
 
 [dev-dependencies]
+maplit = "1.0.2"
 test-env-log = "0.2.7"
 tokio = {version = "1", features = ["test-util"]}
 uuid = {version = "0.8.2", features = ["v4"]}

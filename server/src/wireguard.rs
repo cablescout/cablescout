@@ -1,12 +1,12 @@
 use crate::login::UserData;
 use crate::sessions::{ip_address_as_ip_network, SessionManager};
 use anyhow::Result;
-use chrono::prelude::*;
 use ipnetwork::IpNetwork;
 use log::*;
 use std::net::IpAddr;
 use std::sync::Arc;
 use structopt::StructOpt;
+use tokio::time::Instant;
 use uuid::Uuid;
 use wg_utils::{
     wg_quick_up, FullWireguardInterface, WgKeyPair, WireguardConfig, WireguardInterface,
@@ -73,7 +73,7 @@ impl Wireguard {
         Ok(Arc::new(Self {
             session_manager: SessionManager::new(
                 settings.wg_client_cidr,
-                chrono::Duration::from_std(settings.session_duration.into())?,
+                settings.session_duration.into(),
             ),
             settings,
             key_pair: WgKeyPair::new().await?,
@@ -91,7 +91,7 @@ impl Wireguard {
         device_id: Uuid,
         client_public_key: String,
         user_data: UserData,
-    ) -> Result<(WireguardInterface, WireguardPeer, DateTime<Utc>)> {
+    ) -> Result<(WireguardInterface, WireguardPeer, Instant)> {
         let session = self
             .session_manager
             .create(device_id, client_public_key, user_data)

@@ -604,6 +604,7 @@ dependencies = [
  "itertools",
  "jsonwebtoken",
  "log",
+ "maplit",
  "mime",
  "openid",
  "rand",

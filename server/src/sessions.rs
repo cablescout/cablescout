@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use chrono::prelude::*;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use log::*;
 use std::collections::HashMap;
@@ -10,8 +9,12 @@ use std::time::Duration;
 use tokio::select;
 use tokio::sync::{Notify, RwLock};
 use tokio::time;
+use tokio::time::Instant;
 use uuid::Uuid;
 use wg_utils::WireguardPeer;
+
+#[cfg(test)]
+use std::collections::HashSet;
 
 pub fn ip_address_as_ip_network(ip: IpAddr) -> Result<IpNetwork, IpNetworkError> {
     IpNetwork::new(
@@ -28,7 +31,7 @@ pub(crate) struct Session<U>
 where
     U: Send,
 {
-    pub(crate) ends_at: DateTime<Utc>,
+    pub(crate) ends_at: Instant,
     pub(crate) user_data: U,
     pub(crate) device_id: Uuid,
     pub(crate) client_public_key: String,
@@ -56,7 +59,7 @@ where
     U: Send,
 {
     client_network: IpNetwork,
-    session_duration: chrono::Duration,
+    session_duration: Duration,
     sessions: RwLock<HashMap<Uuid, Session<U>>>,
     notify: Arc<Notify>,
 }
@@ -65,13 +68,18 @@ impl<U> SessionManager<U>
 where
     U: Send + Sync + Clone + 'static,
 {
-    pub fn new(client_network: IpNetwork, session_duration: chrono::Duration) -> Arc<Self> {
+    pub fn new(client_network: IpNetwork, session_duration: Duration) -> Arc<Self> {
         Arc::new(Self {
             client_network,
             session_duration,
             sessions: Default::default(),
             notify: Default::default(),
         })
+    }
+
+    #[cfg(test)]
+    pub fn session_duration(&self) -> Duration {
+        self.session_duration
     }
 
     pub fn run(self: Arc<Self>) {
@@ -98,23 +106,14 @@ where
     ) -> Result<Session<U>> {
         let mut sessions = self.sessions.write().await;
 
-        let ends_at = Utc::now()
-            .checked_add_signed(self.session_duration)
-            .ok_or_else(|| anyhow!("Overflow while calculating session end time"))?;
-
+        let ends_at = Instant::now() + self.session_duration;
         let session = if let Some(session) = sessions.get_mut(&device_id) {
-            info!(
-                "Updating existing session of device {} to end at {}",
-                device_id, ends_at
-            );
+            info!("Updating existing session of device {}", device_id);
             session.ends_at = ends_at;
             session.client_public_key = client_public_key;
             session.clone()
         } else {
-            info!(
-                "Creating new session for device {}, ends at {}",
-                device_id, ends_at
-            );
+            info!("Creating new session for device {}", device_id);
             let server_addresses = [self.client_network.network(), self.server_address()];
             let mut addresses_in_use = itertools::sorted(itertools::chain(
                 &server_addresses,
@@ -152,40 +151,49 @@ where
             .collect::<Result<_>>()?)
     }
 
-    async fn next_expiring_session(self: Arc<Self>) -> Option<DateTime<Utc>> {
+    #[cfg(test)]
+    pub async fn get_peer_public_keys(&self) -> Result<HashSet<String>> {
+        Ok(self
+            .get_peers()
+            .await?
+            .into_iter()
+            .map(|peer| peer.public_key)
+            .collect())
+    }
+
+    async fn next_expiring_session(self: Arc<Self>) -> Option<Instant> {
         let sessions = self.sessions.read().await;
-        sessions.values().map(|session| session.ends_at).max()
+        sessions.values().map(|session| session.ends_at).min()
     }
 
     async fn expire_old_sessions(self: Arc<Self>) {
         let notify = self.clone().get_notify();
 
         loop {
+            let now = Instant::now();
             let until = match self.clone().next_expiring_session().await {
-                None => Duration::from_secs(10000000000),
-                Some(datetime) => {
-                    let duration_until = datetime - Utc::now();
-                    duration_until
-                        .to_std()
-                        .unwrap_or_else(|_| Duration::from_nanos(0))
-                }
+                None => now + Duration::from_secs(1000000000),
+                Some(ends_at) => ends_at,
             };
-            info!("Next session is set to expire in {:?}", until);
+            info!(
+                "Next session is set to expire in {:?}",
+                until.saturating_duration_since(now)
+            );
 
-            let timeout = time::sleep(until);
+            let timeout = time::sleep_until(until);
             select! {
                 _ = notify.notified() => {
-                    // Restart loop to calculate the next session to expire
-                    break;
+                    debug!("Notified of session update, updating next expiring session");
+                    continue;
                 }
 
                 _ = timeout => {
                     debug!("Removing old sessions");
                     let mut sessions = self.sessions.write().await;
                     let len_before = sessions.len();
-                    let now = Utc::now();
+                    let now = Instant::now();
                     sessions.retain(|_, session| session.ends_at >= now);
-                    info!("Removed {} sessions", sessions.len() - len_before);
+                    info!("Removed {} sessions", len_before - sessions.len());
                 }
             }
         }
@@ -195,7 +203,22 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use maplit::hashset;
     use test_env_log::test;
+
+    struct PausedTime;
+
+    impl PausedTime {
+        fn new() {
+            time::pause()
+        }
+    }
+
+    impl Drop for PausedTime {
+        fn drop(&mut self) {
+            time::resume()
+        }
+    }
 
     #[derive(Clone)]
     struct TestUserData {}
@@ -204,7 +227,7 @@ mod tests {
 
     fn create_session_manager() -> Result<TestSessionManager> {
         let client_network: IpNetwork = "192.168.1.0/24".parse()?;
-        let manager = SessionManager::new(client_network, chrono::Duration::minutes(10));
+        let manager = SessionManager::new(client_network, Duration::from_secs(10 * 60));
         manager.clone().run();
         Ok(manager)
     }
@@ -243,6 +266,45 @@ mod tests {
             .create(device_id, "key2".to_owned(), TestUserData {})
             .await?;
         assert_eq!(session2.client_address, session1.client_address);
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_session_expiry() -> Result<()> {
+        let manager = create_session_manager()?;
+        let _paused_time = PausedTime::new();
+        assert_eq!(manager.get_peer_public_keys().await?, hashset!());
+
+        let public_key1 = "k1";
+        manager
+            .create(Uuid::new_v4(), public_key1.to_owned(), TestUserData {})
+            .await?;
+        time::sleep(manager.session_duration() / 2).await;
+        assert_eq!(
+            manager.get_peer_public_keys().await?,
+            hashset!(public_key1.to_owned())
+        );
+
+        let public_key2 = "k2";
+        manager
+            .create(Uuid::new_v4(), public_key2.to_owned(), TestUserData {})
+            .await?;
+        assert_eq!(
+            manager.get_peer_public_keys().await?,
+            hashset!(public_key1.to_owned(), public_key2.to_owned())
+        );
+
+        time::sleep(manager.session_duration() / 2 + Duration::from_secs(1)).await;
+        tokio::task::yield_now().await;
+        assert_eq!(
+            manager.get_peer_public_keys().await?,
+            hashset!(public_key2.to_owned())
+        );
+
+        time::sleep(manager.session_duration() / 2).await;
+        tokio::task::yield_now().await;
+        assert_eq!(manager.get_peer_public_keys().await?, hashset!());
+
         Ok(())
     }
 }

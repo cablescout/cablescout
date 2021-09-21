@@ -4,15 +4,17 @@ use crate::tokens::{random_string, TokenGenerator};
 use crate::wireguard::Wireguard;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use cablescout_api::server::{
     FinishLoginRequest, FinishLoginResponse, StartLoginRequest, StartLoginResponse,
 };
+use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::IpAddr;
 use std::sync::Arc;
 use structopt::StructOpt;
+use tokio::time::Instant;
 use uuid::Uuid;
 
 #[derive(Debug, StructOpt)]
@@ -92,7 +94,7 @@ async fn finish_login_api(
         .await?;
     let hostname = get_hostname(&req);
 
-    let (interface, peer, session_ends_at) = api_server
+    let (interface, peer, session_ends_instant) = api_server
         .wireguard
         .clone()
         .start_session(
@@ -102,6 +104,12 @@ async fn finish_login_api(
             user_data,
         )
         .await?;
+
+    let session_ends_at = Utc::now()
+        + chrono::Duration::from_std(
+            session_ends_instant.saturating_duration_since(Instant::now()),
+        )
+        .map_err(|e| anyhow!("Internal error calculating session ends time: {}", e))?;
     Ok(HttpResponse::Ok().json(FinishLoginResponse {
         session_ends_at,
         interface,
