@@ -1,24 +1,24 @@
 [package]
-name = "cablescout-daemon"
-version = "0.1.0"
 authors = ["Zohar Zilberman <popen2@gmail.com>"]
 edition = "2018"
+name = "cablescout-daemon"
+version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.40"
 async-std = "1.9.0"
-cablescout-api = { path = "../api" }
-dirs = "3.0.2"
-env_logger = "0.8.3"
+cablescout-api = {path = "../api"}
+dirs = "4.0.0"
+env_logger = "0.9.0"
 futures = "0.3.15"
 log = "0.4.14"
 notify = "4.0.17"
-reqwest = { version = "0.11.3", default-features = false, features = ["rustls-tls", "json"] }
-serde = { version = "1.0", features = ["derive"] }
+reqwest = {version = "0.11.3", default-features = false, features = ["rustls-tls", "json"]}
+serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 structopt = "0.3.21"
-tokio = { version = "1.5.0", features = ["rt-multi-thread", "io-std", "io-util", "process", "fs"] }
-tonic = "0.4.3"
-url = { version = "2.2.1", features = ["serde"] }
-uuid = { version = "0.8.2", features = ["v4"] }
-wg-utils = { path = "../wg-utils" }
+tokio = {version = "1.5.0", features = ["rt-multi-thread", "io-std", "io-util", "process", "fs"]}
+tonic = "0.5.2"
+url = {version = "2.2.1", features = ["serde"]}
+uuid = {version = "0.8.2", features = ["v4"]}
+wg-utils = {path = "../wg-utils"}
